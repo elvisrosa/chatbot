@@ -1,0 +1,271 @@
+.login-container {
+    margin: auto;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    display: flex;
+    background-color: var(--color-bg);
+    transition: var(--color-bg) 0.3s ease;
+}
+
+.login-container.dark-mode {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    transition: all 0.3s ease;
+}
+
+.dark-mode .login-card {
+    background-color: #1f1f1f;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.login-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.logo {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: #5b68f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.logo i {
+    font-size: 36px;
+    color: white;
+}
+
+.login-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+    color: #333;
+}
+
+.dark-mode .login-header h1 {
+    color: #f5f5f5;
+}
+
+.login-form {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+}
+
+.dark-mode .form-group label {
+    color: #b0b3b8;
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 12px;
+    color: #757575;
+}
+
+.input-with-icon .toggle-password {
+    left: auto;
+    right: 12px;
+    cursor: pointer;
+}
+
+.dark-mode .input-with-icon i {
+    color: #b0b3b8;
+}
+
+.input-with-icon input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border-color 0.3s ease;
+}
+
+.input-with-icon input[type="password"],
+.input-with-icon input[type="text"] {
+    padding-right: 40px;
+}
+
+.input-with-icon input:focus {
+    outline: none;
+    border-color: #5b68f2;
+}
+
+.dark-mode .input-with-icon input {
+    background-color: #2a2a2a;
+    border-color: #3d3d3d;
+    color: #f5f5f5;
+}
+
+.remember-me {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.remember-me label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: #555;
+}
+
+.dark-mode .remember-me label {
+    color: #b0b3b8;
+}
+
+.remember-me input[type="checkbox"] {
+    margin-right: 8px;
+    accent-color: #5b68f2;
+}
+
+.forgot-password {
+    color: #5b68f2;
+    text-decoration: none;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+}
+
+.login-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #5b68f2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-button:hover {
+    background-color: #4a57e1;
+}
+
+.login-button:disabled {
+    background-color: #9ea4f4;
+    cursor: not-allowed;
+}
+
+.error-message {
+    color: #e53935;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.login-error {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.login-footer {
+    text-align: center;
+    font-size: 14px;
+    color: #757575;
+}
+
+.dark-mode .login-footer {
+    color: #b0b3b8;
+}
+
+.login-footer a {
+    color: #5b68f2;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Spinner */
+.spinner {
+    display: flex;
+    justify-content: center;
+}
+
+.spinner>div {
+    width: 10px;
+    height: 10px;
+    background-color: white;
+    border-radius: 100%;
+    display: inline-block;
+    margin: 0 3px;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.spinner .bounce1 {
+    animation-delay: -0.32s;
+}
+
+.spinner .bounce2 {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+    }
+
+    40% {
+        transform: scale(1.0);
+    }
+}
+
+@media (max-width: 480px) {
+    .login-card {
+        max-width: 90%;
+        padding: 20px;
+    }
+
+    .remember-me {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .forgot-password {
+        margin-top: 10px;
+    }
+}

@@ -1,0 +1,12 @@
+<div class="app-container" [class.dark-mode]="isDarkMode">
+    <aside class="sidebar-container">
+        <app-sidebar [activeContactId]="activeContactId" (contactSelected)="setActiveContact($event)" [autenticated]="authenticated"></app-sidebar>
+    </aside>
+    <main class="chat-container">
+        <app-chat [isDarkMode]="isDarkMode" *ngIf="authenticated"></app-chat>
+        <app-login [isDarkMode]="isDarkMode" *ngIf="!authenticated"></app-login> 
+    </main>
+    <div class="theme-toggle" (click)="toggleTheme()">
+        <i class="material-icons">{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</i>
+    </div>
+</div>

@@ -1,0 +1,65 @@
+<div class="sidebar">
+    <div class="user-profile">
+        <div class="user-avatar">
+            <img src="../../../assets/svgs/user.svg?height=40&width=40" alt="Your profile" />
+            <span class="status-indicator online"></span>
+        </div>
+        <h2>Chats</h2>
+        <div class="user-actions">
+            <!--<i class="material-icons">settings</i>
+            <i class="material-icons">star</i>
+            <i class="material-icons">vpn_key</i>
+            <i class="material-icons">chat</i>
+            <i class="material-icons">phone</i>
+            <i class="material-icons">videocam</i>
+            <i class="material-icons">archive</i>
+            <i class="material-icons">help</i>
+            <i class="material-icons">more_horiz</i>
+            <i class="material-icons">group</i>
+            <i class="material-icons">menu</i>-->
+            <i class="material-icons">more_vert</i>       
+        </div>
+    </div>
+
+    <div class="search-container">
+        <div class="search-box">
+            <i class="material-icons">search</i>
+            <input type="text" placeholder="Buscar contactos o chats" [(ngModel)]="searchTerm" />
+            <i *ngIf="searchTerm" class="material-icons clear-search" (click)="searchTerm = ''">close</i>
+        </div>
+    </div>
+
+    <div class="tabs" *ngIf="autenticated">
+        <div class="tab active">Chats</div>
+        <div class="tab">Estados</div>
+        <div class="tab">Llamadas</div>
+    </div>
+
+    <div class="contacts-list" *ngIf="autenticated">
+        <div *ngFor="let contact of filteredContacts" class="contact-item"
+            [class.active]="contact.id === activeContactId" (click)="selectContact(contact.id)">
+            <div class="contact-avatar">
+                <img [src]="contact.avatar" [alt]="contact.name" />
+                <span class="status-indicator" [class]="contact.status"></span>
+            </div>
+            <div class="contact-info">
+                <div class="contact-name-time">
+                    <h3>{{ contact.name }}</h3>
+                    <span class="time">{{ contact.lastMessageTime }}</span>
+                </div>
+                <div class="contact-message-status">
+                    <p>{{ contact.lastMessage }}</p>
+                    <div class="message-status">
+                        <span *ngIf="contact.unreadCount" class="unread-count">{{ contact.unreadCount }}</span>
+                        <i *ngIf="contact.id === activeContactId" class="material-icons read-status">{{
+                            getStatusIcon(contact.lastMessageStatus) }}</i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="new-chat-button">
+        <i class="material-icons">chat</i>
+    </div>
+</div>

@@ -1,0 +1,59 @@
+<div class="chat-area">
+    <div class="chat-header">
+        <div class="chat-contact-info">
+            <div class="back-button">
+                <i class="material-icons">arrow_back</i>
+            </div>
+            <div class="contact-avatar">
+                <img [src]="activeContact?.avatar" [alt]="activeContact?.name" />
+            </div>
+            <div class="contact-details">
+                <h3>{{ activeContact?.name }}</h3>
+                <span class="status">{{ getStatusText() }}</span>
+            </div>
+        </div>
+        <div class="chat-actions">
+            <i class="material-icons">videocam</i>
+            <i class="material-icons">call</i>
+            <i class="material-icons">more_vert</i>
+        </div>
+    </div>
+
+    <div class="messages-container" #messagesContainer>
+        <div class="messages-date">Hoy</div>
+
+        <div *ngFor="let message of messages" class="message-wrapper" [class.outgoing]="true">
+            <div class="message">
+                <div class="message-content">{{ message.content }}</div>
+                <div class="message-meta">
+                    <span class="message-time">{{ message.timestamp | date }}</span>
+                    <i *ngIf="true" class="material-icons status-icon">{{ getStatusIcon('') }}</i>
+                </div>
+            </div>
+        </div>
+
+        <div *ngIf="isTyping" class="message-wrapper">
+            <div class="message">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-input-area">
+        <div class="input-actions">
+            <i class="material-icons">emoji_emotions</i>
+            <i class="material-icons">attach_file</i>
+        </div>
+        <div class="message-input">
+            <input type="text" placeholder="Escribe un mensaje" [(ngModel)]="message.content"
+                (keyup.enter)="sendMessage()" />
+        </div>
+        <div class="send-button" (click)="sendMessage()">
+            <i class="material-icons">{{ newMessage ? 'send' : 'mic' }}</i>
+        </div>
+    </div>
+</div>

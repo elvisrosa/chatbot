@@ -19,14 +19,14 @@ import com.elvis.springboot.chat.app.jwt.filter.JwtFilter;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true, prePostEnabled = true)
 public class SecurityConfig {
 
-    private static final String[] PATH_WHITELIST = {"/api/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"};
+    private static final String[] PATH_WHITELIST = { "/api/auth/**", "/v3/api-docs/**", "/swagger-ui/**",
+            "/swagger-ui.html", "/chat-websocket/**" };
 
     @Autowired
     private JwtFilter jwtFilter;
@@ -49,11 +49,13 @@ public class SecurityConfig {
                         .requestMatchers(PATH_WHITELIST).permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .httpBasic(Customizer.withDefaults())
-                .cors(cors -> cors.disable())
+                // .httpBasic(Customizer.withDefaults())
+                .cors(Customizer.withDefaults())
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout.disable())
-                // .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                // .csrf(csrf -> csrf.disable())
+                // .exceptionHandling(ex ->
+                // ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .addFilterBefore(jwtFilter, BasicAuthenticationFilter.class);
         return http.build();
     }

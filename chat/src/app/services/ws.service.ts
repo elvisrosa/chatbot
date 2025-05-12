@@ -2,6 +2,8 @@ import { Injectable, OnInit } from '@angular/core';
 import { Client } from '@stomp/stompjs';
 import * as SockJS from 'sockjs-client';
 import { Message } from '../models/Message';
+import { AuthService } from './auth.service';
+import { BehaviorSubject, debounceTime, Subject, Subscription, throttleTime } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -10,38 +12,65 @@ export class WsService {
 
   private stompClient!: Client;
   private connected: boolean = false;
+  private messageSubject = new Subject<Message>();
+  public message$ = this.messageSubject.asObservable();
 
-  constructor() {
-  }
+  private typingSubject = new Subject<void>();
+  private typingSubscription!: Subscription;
+  private typingStatusSubject = new BehaviorSubject<Message  | null>({
+    to: '',
+    type: '',
+    content: '',
+    timestamp: undefined,
+    from: ''
+  });
+  public typing$ = this.typingStatusSubject.asObservable();
+
+  private activeContact: any | undefined;
+
+  constructor(private auth: AuthService) { }
 
   public initializeWebSocketConnection() {
-
+    const token = this.auth.getToken();
     this.stompClient = new Client({
       brokerURL: '',
-      webSocketFactory: () => new SockJS('http://localhost:8080/chat-websocket'),
-      debug: (str) => {
-        console.log(new Date(), str);
+      webSocketFactory: () => new SockJS(`http://localhost:8080/chat-websocket?ss=${token}`),
+      connectHeaders: {
+        'Authorization': `Bearer ${token}`
       },
-      reconnectDelay: 5000,
+      debug: (str) => {
+      console.log(new Date(), str);
+      },
+      reconnectDelay: 50000,
     });
 
     this.stompClient.onConnect = (frame) => {
       this.connected = true;
-      console.log('Connected: ' + frame);
-      this.stompClient.subscribe('/topic/messages', (message) => {
-        console.log('Received message: ' + message.body);
+      this.stompClient.subscribe('/user/queue/messages', (message) => {
+        const data = JSON.parse(message.body)
+        console.log(data)
+        this.messageSubject.next(data);
       });
+
+
+      this.stompClient.subscribe('/user/queue/typing', (message) => {
+        const data = JSON.parse(message.body)
+        this.typingStatusSubject.next(data);
+      });
+
+      this.setupTypingNotifier();
+
     };
 
     this.stompClient.onStompError = (frame) => {
       this.connected = false;
-      console.error('Broker reported error: ' + frame.headers['message']);
-      console.error('Additional details: ' + frame.body);
+      // console.error('Broker reported error: ' + frame.headers['message']);
+      // console.error('Additional details: ' + frame.body);
     };
 
     this.stompClient.onDisconnect = (frame) => {
       this.connected = false;
-      console.log(`Disconnected ${!this.stompClient.connected}`);
+      // console.log(`Disconnected ${!this.stompClient.connected}`);
     }
 
     this.connect();
@@ -63,11 +92,51 @@ export class WsService {
         destination: '/app/chat.send',
         body: JSON.stringify(message),
       });
-    } else {
-      console.error('Not connected to the server.');
     }
   }
 
+  public notifyTyping(activeContact: any): void {
+    this.activeContact = activeContact;
+    this.typingSubject.next();
+  }
 
 
+  private setupTypingNotifier(): void {
+    this.typingSubscription = this.typingSubject
+      .pipe(throttleTime(800))
+      .subscribe(() => {
+        const typingPayload = {
+          to: this.activeContact?.username || 'admin',
+          type: 'typing',
+          content: '',
+          timestamp: null,
+          from: '',
+        };
+
+        this.stompClient.publish({
+          destination: '/app/chat.typing',
+          body: JSON.stringify(typingPayload),
+        });
+      });
+  }
+
+  sendTypingNotification(activeContact: any, type: string) {
+    const typingMessage = {
+      to: activeContact.username,
+      type: type,
+      content: '',
+      timestamp: null,
+      from: null
+    };
+
+    this.stompClient.publish({
+      destination: '/app/chat.typing',
+      body: JSON.stringify(typingMessage)
+    });
+  }
+
+  public resetValueTyping(){
+    this.typingStatusSubject.next({});
+  }
 }
+

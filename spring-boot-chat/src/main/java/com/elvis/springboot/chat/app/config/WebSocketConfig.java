@@ -1,5 +1,6 @@
 package com.elvis.springboot.chat.app.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -9,6 +10,10 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    @Autowired
+    private JwtHandshakeInterceptor jwtHandshakeInterceptor;
+
     /**
      * Configure the message broker for WebSocket communication.
      * This method sets up the message broker with a simple in-memory broker
@@ -25,7 +30,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/chat-websocket").setAllowedOrigins("*").withSockJS();
+        registry.addEndpoint("/chat-websocket").setAllowedOrigins("http://localhost:4200")
+        .addInterceptors(jwtHandshakeInterceptor).withSockJS();
     }
 
     /**
@@ -38,9 +44,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.enableSimpleBroker("/topic/", "/queue/", "/chatroom/");
+        config.setUserDestinationPrefix("/user");
         config.setApplicationDestinationPrefixes("/app");
         // config.setUserDestinationPrefix("/secured/user");
-        config.setUserDestinationPrefix("/user");
 
     }
 

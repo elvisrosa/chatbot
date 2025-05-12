@@ -1,7 +1,10 @@
-import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
-import { Client } from '@stomp/stompjs';
+import { AfterViewChecked, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { Message } from 'src/app/models/Message';
+import { ChatService } from 'src/app/services/chat.service';
 import { WsService } from 'src/app/services/ws.service';
+import { Subject, Subscription } from 'rxjs';
+import { UtilsService } from 'src/app/services/utils.service';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-chat',
@@ -10,135 +13,133 @@ import { WsService } from 'src/app/services/ws.service';
 })
 export class ChatComponent implements OnInit, AfterViewChecked {
 
-  private connected: boolean = false;
-  public messages: Message[] = [];
   public message: Message = new Message();
-  @Input() activeContact: any | undefined
+  public messages: Message[] = [];
+  activeContact: any | undefined
   @Input() isDarkMode = false
   @Output() sendMessage2 = new EventEmitter<string>()
+  statusCurrentUser: string = '';
+  private subscriptions?: Subscription;
+  private typingSubscription?: Subscription;
+
 
   @ViewChild("messagesContainer") private messagesContainer!: ElementRef
 
   newMessage = ""
-  isTyping = false
+  state: String = ''
+  isTyping = false;
 
-  constructor(private services_ws: WsService) { }
-
+  constructor(private services_ws: WsService, private ctS: ChatService, public util: UtilsService, private auth: AuthService) {
+    this.subscriptions = new Subscription();
+    this.typingSubscription = new Subscription();
+  }
 
   ngOnInit(): void {
-    // this.services_ws.initializeWebSocketConnection()
-    this.messages = [
-      {
-        id: 1,
-        content: "Hola, ¿cómo estás?",
-        sender: "user",
-        timestamp: 20000000,
-        status: "sent"
-      },
-      {
-        id: 2,
-        content: "¡Hola! Estoy bien, gracias. ¿Y tú?",
-        sender: "contact",
-        timestamp: 20000000,
-        status: "delivered"
-      },
-      {
-        id: 3,
-        content: "Todo bien, gracias por preguntar.",
-        sender: "user",
-        timestamp: 20000000,
-        status: "read"
-      },
-      {
-        id: 4,
-        content: "¿Qué has estado haciendo últimamente?",
-        sender: "user",
-        timestamp: 20000000,
-        status: "pending"
-      },
-      {
-        id: 5,
-        content: "He estado trabajando en un proyecto nuevo.",
-        sender: "contact",
-        timestamp: 20000000,
-        status: "sent"
-      },
-      {
-        id: 6,
-        content: "Eso suena interesante. ¿De qué se trata?",
-        sender: "user",
-        timestamp: 20000000,
-        status: "delivered"
-      },
-      {
-        id: 6,
-        content: "Eso suena interesante. ¿De qué se trata?",
-        sender: "user",
-        timestamp: 20000000,
-        status: "delivered"
-      },
+    this.services_ws.initializeWebSocketConnection();
+    this.loadSendMessages();
+    this.auth.activeContact$.subscribe(contact => {
+      this.activeContact = contact;
+      if (this.activeContact) {
+        this.isTypingF()
+        this.loadMessages();
+      }
+    });
+  }
 
-    ]
+  loadMessages() {
+    this.ctS.getMessages(this.activeContact.id).subscribe({
+      next: (data) => {
+        this.messages = data;
+      }
+    });
+  }
+
+  loadSendMessages() {
+    this.subscriptions?.add(
+      this.services_ws.message$.subscribe((msg: Message) => {
+        console.log('mensaje que estoy recibiendo', msg)
+        const alreadyExists = this.messages.some(m => m.id === msg.id || m.timestamp === msg.timestamp);
+        if (!alreadyExists && (msg.from === this.activeContact?.id || msg.to === this.activeContact?.id)) {
+          this.messages.unshift(msg);
+        }
+        if (!alreadyExists && msg.status === 'pendig_acceptance') {
+          console.log('Te ha llegado en mensaje a un chat pendiente')
+        }
+      }
+      ))
   }
 
   ngAfterViewChecked() {
-    this.scrollToBottom()
+    if (this.messagesContainer && this.messagesContainer.nativeElement) {
+      this.scrollToBottom();
+    }
+    // const bottom = this.messagesContainer.nativeElement.scrollHeight === this.messagesContainer.nativeElement.scrollTop + this.messagesContainer.nativeElement.clientHeight;
+    // if (bottom) {
+    //   const unreadMessages = this.messages.filter(msg => msg.status !== 'read');
+    //   console.log(unreadMessages)
+    //   const messageIdsToMarkAsRead = unreadMessages.map(msg => msg.id);
+    //   if (messageIdsToMarkAsRead.length > 0) {
+    //     this.ctS.markMessagesAsRead(messageIdsToMarkAsRead).subscribe(() => {
+    //       unreadMessages.forEach(msg => msg.status = 'read');
+    //     });
+    //   }
+    // }
+  }
+
+  isTypingF(): void {
+    this.typingSubscription?.unsubscribe();
+    this.typingSubscription = this.services_ws.typing$.subscribe((message: any) => {
+      const currentContactId = this.activeContact?.id;
+      if (message && message.from && message.from === currentContactId) {
+        const type = message.type;
+        if (type === 'typing') {
+          this.state = 'Escribiendo...';
+          this.isTyping = true;
+          setTimeout(() => {
+            this.state = 'En línea';
+            this.isTyping = false;
+          }, 3000);
+        } else if (type === 'online') {
+          this.state = 'En línea';
+        } else {
+          this.state = this.util.formatLastSeen(this.activeContact?.lastSeen)
+        }
+      } else {
+        this.state = this.util.formatLastSeen(this.activeContact?.lastSeen)
+      }
+    });
   }
 
   scrollToBottom(): void {
     try {
-      this.messagesContainer.nativeElement.scrollTop = this.messagesContainer.nativeElement.scrollHeight
-    } catch (err) { }
-  }
-
-  getStatusText(): string {
-    if (!this.activeContact) return ""
-
-    if (this.activeContact.status === "online") {
-      return "En línea"
-    } else if (this.activeContact.status === "typing") {
-      return "Escribiendo..."
-    } else {
-      return "Última vez hoy a las " + this.activeContact.lastSeen
-    }
-  }
-
-  getStatusIcon(status: string): string {
-    switch (status) {
-      case "sent":
-        return "check"
-      case "delivered":
-        return "done_all"
-      case "read":
-        return "done_all"
-      default:
-        return "schedule"
-    }
-  }
-
-  formatTime(date: Date): string {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
-
-  onSendMessage(): void {
-    if (this.newMessage.trim()) {
-      this.newMessage = ""
-      setTimeout(() => {
-        this.isTyping = true
-
-        setTimeout(() => {
-          this.isTyping = false
-        }, 2000)
-      }, 1000)
+      if (this.messagesContainer?.nativeElement) {
+        this.messagesContainer.nativeElement.scrollTop = this.messagesContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {
+      console.error('Error al hacer scroll:', err);
     }
   }
 
   sendMessage(): void {
-    this.services_ws.sendMessage(this.message)
+    this.message.to = this.activeContact.id;
+    const newMessage = { ...this.message };
+    this.services_ws.sendMessage(newMessage);
+    this.message = new Message();
+  }
+
+
+  trackByMessageId(index: number, message: any): string {
+    return message.id;
+  }
+
+  onTyping(): void {
+    this.services_ws.notifyTyping(this.activeContact);
   }
 
   ngOnDestroy(): void {
     this.services_ws.disconnect()
+    this.subscriptions?.unsubscribe();
+    this.typingSubscription?.unsubscribe();
   }
 
 }

@@ -1,23 +1,19 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, take, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
 
-  private _authenticated = new BehaviorSubject<boolean>(false);
-  private _user = new BehaviorSubject<any>(null);
+  private authenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
+  public authenticated$ = this.authenticatedSubject.asObservable();
 
-  public readonly authenticated$ = this._authenticated.asObservable();
-  public readonly user$ = this._user.asObservable();
+  private _activeContactSubject = new BehaviorSubject<null>(null);
+  public activeContact$ = this._activeContactSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    if (this.getToken()) {
-      this._authenticated.next(true);
-    }
-  }
+  constructor(private http: HttpClient) { }
 
   getToken(): string {
     return localStorage.getItem('tksrtath') || '';
@@ -25,7 +21,6 @@ export class AuthService {
 
   setToken(token: string) {
     localStorage.setItem('tksrtath', token);
-    this._authenticated.next(true);
   }
 
   deleteToken() {
@@ -33,11 +28,26 @@ export class AuthService {
   }
 
   get isAuthenticated(): boolean {
-    return this._authenticated.value;
+    return this.authenticatedSubject.value;
   }
 
+
+  setActiveContact(contact: any): void {
+    this._activeContactSubject.next(contact);
+  }
+
+  getActiveContact(): any | null {
+    return this._activeContactSubject.value;
+  }
+
+
   login(user: any) {
-    return this.http.post<Response>('http://localhost:8080/api/auth/anon', user);
+    return this.http.post<Response>('http://localhost:8080/api/auth/anon', user).pipe(
+      tap(resp => {
+        this.setToken(resp.data)
+        this.authenticatedSubject.next(true)
+      })
+    )
   }
 
   register(user: any) {
@@ -47,6 +57,10 @@ export class AuthService {
   logout() {
     this.deleteToken();
     return this.http.post('http://localhost:8080/api/auth/logout', {});
+  }
+
+  hasToken(): boolean {
+    return !!this.getToken();
   }
 
 }

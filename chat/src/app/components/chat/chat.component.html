@@ -1,15 +1,15 @@
-<div class="chat-area">
+<div class="chat-area" *ngIf="activeContact">
     <div class="chat-header">
         <div class="chat-contact-info">
             <div class="back-button">
                 <i class="material-icons">arrow_back</i>
             </div>
             <div class="contact-avatar">
-                <img [src]="activeContact?.avatar" [alt]="activeContact?.name" />
+                <img [src]="activeContact?.profilePicture" [alt]="activeContact?.name" />
             </div>
             <div class="contact-details">
                 <h3>{{ activeContact?.name }}</h3>
-                <span class="status">{{ getStatusText() }}</span>
+                <span class="status">{{ state }}</span>
             </div>
         </div>
         <div class="chat-actions">
@@ -19,20 +19,22 @@
         </div>
     </div>
 
-    <div class="messages-container" #messagesContainer>
-        <div class="messages-date">Hoy</div>
+    <div class="messages-date">Hoy</div>
 
-        <div *ngFor="let message of messages" class="message-wrapper" [class.outgoing]="true">
+    <div class="messages-container" #messagesContainer>
+        <div *ngFor="let message of messages; trackBy: trackByMessageId" class="message-wrapper"
+            [class.outgoing]="message.to === activeContact?.id">
             <div class="message">
-                <div class="message-content">{{ message.content }}</div>
+                <div class="message-content">{{ message.content?.body }}</div>
                 <div class="message-meta">
-                    <span class="message-time">{{ message.timestamp | date }}</span>
-                    <i *ngIf="true" class="material-icons status-icon">{{ getStatusIcon('') }}</i>
+                    <span class="message-time">{{ message.timestamp | date: 'hh:mm a' }}</span>
+                    <i *ngIf="true" class="material-icons status-icon">{{ util.getStatusIcon(message.status || '')
+                        }}</i>
                 </div>
             </div>
         </div>
 
-        <div *ngIf="isTyping" class="message-wrapper">
+        <!--<div *ngIf="true" class="message-wrapper">
             <div class="message">
                 <div class="typing-indicator">
                     <span></span>
@@ -40,7 +42,7 @@
                     <span></span>
                 </div>
             </div>
-        </div>
+        </div>-->
     </div>
 
     <div class="chat-input-area">
@@ -50,10 +52,14 @@
         </div>
         <div class="message-input">
             <input type="text" placeholder="Escribe un mensaje" [(ngModel)]="message.content"
-                (keyup.enter)="sendMessage()" />
+                (keyup.enter)="sendMessage()" (input)="onTyping()" />
         </div>
         <div class="send-button" (click)="sendMessage()">
             <i class="material-icons">{{ newMessage ? 'send' : 'mic' }}</i>
         </div>
     </div>
 </div>
+
+<ng-container *ngIf="!activeContact">
+    Descarga la App disponible en la Play Store
+</ng-container>

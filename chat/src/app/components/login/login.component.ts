@@ -32,8 +32,7 @@ export class LoginComponent implements OnInit {
     };
     this.loading = true;
     this.auth.login(user).subscribe({
-      next: (response) => {
-        this.auth.setToken(response.data);
+      next: () => {
         this.loading = false;
       },
       error: (error) => {
@@ -42,6 +41,7 @@ export class LoginComponent implements OnInit {
       },
       complete: () => {
         this.loading = false;
+;
       }
     });
 

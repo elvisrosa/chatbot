@@ -242,3 +242,61 @@
     transform: scale(1.05);
     transition: transform 0.2s ease;
 }
+
+
+.contact-item.pending {
+    background-color: rgba(91, 104, 242, 0.05);
+    border-left: 3px solid #5b68f2;
+}
+
+.pending-text {
+    color: #5b68f2;
+    font-style: italic;
+    font-size: 13px;
+}
+
+
+.contact-actions {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    padding-left: 10px;
+}
+
+.accept-btn,
+.reject-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.accept-btn {
+    background-color: #6a9e6c;
+    color: white;
+}
+
+.reject-btn {
+    background-color: #cc8d88;
+    color: white;
+}
+
+.accept-btn:hover,
+.reject-btn:hover {
+    transform: scale(1.1);
+}
+
+.accept-btn i,
+.reject-btn i {
+    font-size: 18px;
+}
+
+.contact-actions button {
+    z-index: 2;
+}

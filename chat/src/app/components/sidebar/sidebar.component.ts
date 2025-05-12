@@ -1,4 +1,8 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { HttpResponse } from '@angular/common/http';
+import { AfterViewInit, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { AuthService } from 'src/app/services/auth.service';
+import { UserService } from 'src/app/services/user.service';
+import { WsService } from 'src/app/services/ws.service';
 
 @Component({
   selector: "app-sidebar",
@@ -6,44 +10,53 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   styleUrls: ['./sidebar.component.css']
 })
 
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
 
   @Input() contacts: any[] = []
-  @Input() activeContactId = 0
   @Input() autenticated: boolean = false
   @Output() contactSelected = new EventEmitter<number>()
-
+  activeContact: any = {}
+  contacts2: any[] = [];
   searchTerm = ""
 
-  get filteredContacts() {
+  constructor(private userService: UserService, private auth: AuthService, private ws: WsService) { }
 
-    // Simulated data for demonstration purposes
-    let contacts = [];
-    for (let i = 0; i < 25; i++) {
-      contacts.push({
-        id: i + 1,
-        name: "John Doe " + (i + 1),
-        lastMessage: "Hello, how are you? " + i,
-        lastMessageTime: "10:30 AM",
-        lastMessageStatus: "sent",
-        unreadCount: i + 1,
-        status: "sent",
-        avatar: "../../../assets/svgs/user.svg",
-      });
-    }
-
-
-    if (this.searchTerm) {
-      const term = this.searchTerm.toLowerCase()
-      return contacts.filter(
-        (contact) => contact.name.toLowerCase().includes(term) || contact.lastMessage.toLowerCase().includes(term),
-      )
-    }
-    return contacts;
+  ngOnInit(): void {
+    this.auth.activeContact$.subscribe(contact => {
+      this.activeContact = contact;
+    });
+    this.getContact();
   }
 
-  selectContact(id: number) {
-    this.contactSelected.emit(id)
+  getContact() {
+    this.userService.getContacts().subscribe({
+      next: (response) => {
+        this.contacts2 = response;
+      },
+      error: (error: any) => { },
+      complete: () => { }
+    })
+  }
+
+
+  getActiveContac(): void {
+    this.auth.activeContact$.subscribe(contact => this.activeContact = contact);
+  }
+
+
+  get filteredContacts() {
+    if (this.searchTerm) {
+      const term = this.searchTerm.toLowerCase()
+      return this.contacts2.filter(
+        (contact) => contact.name.toLowerCase().includes(term) || contact.username.toLowerCase().includes(term),
+      )
+    }
+    return this.contacts2;
+  }
+
+  selectContact(contact: number) {
+    this.auth.setActiveContact(contact);
+    this.ws.resetValueTyping();
   }
 
   getStatusIcon(status: string): string {

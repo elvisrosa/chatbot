@@ -17,7 +17,7 @@
             <i class="material-icons">more_horiz</i>
             <i class="material-icons">group</i>
             <i class="material-icons">menu</i>-->
-            <i class="material-icons">more_vert</i>       
+            <i class="material-icons">more_vert</i>
         </div>
     </div>
 
@@ -29,36 +29,71 @@
         </div>
     </div>
 
-    <div class="tabs" *ngIf="autenticated">
+    <div class="tabs">
         <div class="tab active">Chats</div>
         <div class="tab">Estados</div>
         <div class="tab">Llamadas</div>
     </div>
 
-    <div class="contacts-list" *ngIf="autenticated">
+    <!---<div class="contacts-list">
         <div *ngFor="let contact of filteredContacts" class="contact-item"
-            [class.active]="contact.id === activeContactId" (click)="selectContact(contact.id)">
+            [class.active]="contact.id === activeContact?.id" (click)="selectContact(contact)" [class.contact] = "contact.status">
             <div class="contact-avatar">
-                <img [src]="contact.avatar" [alt]="contact.name" />
-                <span class="status-indicator" [class]="contact.status"></span>
+                <img [src]="contact.profilePicture" [alt]="contact.name" />
             </div>
             <div class="contact-info">
                 <div class="contact-name-time">
                     <h3>{{ contact.name }}</h3>
-                    <span class="time">{{ contact.lastMessageTime }}</span>
+                    <span class="time">{{ contact.lastSeen | date: 'hh:mm'}}</span>
                 </div>
                 <div class="contact-message-status">
-                    <p>{{ contact.lastMessage }}</p>
+                    <p>{{ contact.name }}</p>
                     <div class="message-status">
-                        <span *ngIf="contact.unreadCount" class="unread-count">{{ contact.unreadCount }}</span>
-                        <i *ngIf="contact.id === activeContactId" class="material-icons read-status">{{
+                        <span *ngIf="false" class="unread-count">{{ contact.unreadCount }}</span>
+                        <i *ngIf="true" class="material-icons read-status">{{
                             getStatusIcon(contact.lastMessageStatus) }}</i>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </div>-->
 
+
+    <div class="contacts-list">
+        <div *ngFor="let contact of filteredContacts" class="contact-item"
+            [class.active]="contact.id === activeContact?.id" [class.pending]="contact.status === 'pending'"
+            (click)="selectContact(contact)">
+            <div class="contact-avatar">
+                <img [src]="contact.profilePicture" [alt]="contact.name" />
+            </div>
+            <div class="contact-info">
+                <div class="contact-name-time">
+                    <h3>{{ contact.name }}</h3>
+                    <span class="time">{{ contact.lastSeen | date: 'hh:mm'}}</span>
+                </div>
+                <div class="contact-message-status">
+                    <p *ngIf="contact.status !== 'pendig_acceptance'">{{ contact.name }}</p>
+                    <p *ngIf="contact.status === 'pendig_acceptance'" class="pending-text">Solicitud de contacto</p>
+                    <div class="message-status" *ngIf="contact.status !== 'pendig_acceptance'">
+                        <span *ngIf="false" class="unread-count">{{ contact.unreadCount }}</span>
+                        <i *ngIf="true" class="material-icons read-status">{{
+                            getStatusIcon(contact.lastMessageStatus) }}</i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones para aceptar o rechazar solicitud de contacto -->
+            <div class="contact-actions" *ngIf="contact.status === 'pendig_acceptance'">
+                <!--(click)="acceptContact($event, contact)"-->
+                <button class="accept-btn">
+                    <i class="material-icons">check</i>
+                </button>
+                <button class="reject-btn">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+        </div>
+    </div>
     <div class="new-chat-button">
         <i class="material-icons">chat</i>
     </div>

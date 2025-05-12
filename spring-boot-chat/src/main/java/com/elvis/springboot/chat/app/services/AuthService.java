@@ -38,7 +38,7 @@ public class AuthService {
         if (user.isEmpty()) {
             return new Response(HttpStatus.UNAUTHORIZED.value(), "User or password incorrect");
         }
-        log.info(user.get().getFullName());
+        log.info(user.get().getUsername());
 
         if (!encoder.matches(password, user.get().getPassword())) {
             return new Response(HttpStatus.UNAUTHORIZED.value(), "User or password incorrect");

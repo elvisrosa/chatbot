@@ -7,7 +7,7 @@ import com.elvis.springboot.chat.app.documents.User;
 import com.elvis.springboot.chat.app.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 
-@Configuration
+// @Configuration
 @RequiredArgsConstructor
 public class DataInitializer {
 
@@ -17,7 +17,7 @@ public class DataInitializer {
     public CommandLineRunner init() {
         return args -> {
             if(!userRepository.findByUsername("test").isPresent()) {
-                User user = new User("test", passwordEncoder.encode("test"), "Test User");
+                User user = new User();
                 userRepository.save(user);
                 System.out.println("Users initialized: " + user);
             }

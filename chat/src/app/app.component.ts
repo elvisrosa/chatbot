@@ -8,8 +8,9 @@ import { ThemeService } from './services/theme.service';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
+
   isDarkMode = false
-  activeContactId = 1
+  activeContact: any | null = null;
   authenticated: boolean = false
 
   constructor(private auth: AuthService, private theme: ThemeService) { }
@@ -18,25 +19,20 @@ export class AppComponent implements OnInit {
     this.auth.authenticated$.subscribe(auth => {
       this.authenticated = auth;
     });
+
+    this.auth.activeContact$.subscribe(contact => {
+      this.activeContact = contact;
+    });
+
     this.isDarkMode = this.theme.isDarkMode;
   }
 
-  get activeContact() {
-    return null;
-    // return this.contacts.find((contact) => contact.id === this.activeContactId)
+  set setActiveContact(contact: any) {
+    this.auth.setActiveContact(contact);
   }
 
-  setActiveContact(contactId: number) {
-    this.activeContactId = contactId
-  }
-
-  getMessagesForActiveContact() {
-    // return this.chatService.getMessagesByContactId(this.activeContactId)
-    return null;
-  }
-
-  sendMessage(content: string) {
-
+  get getActiveContact() {
+    return this.activeContact
   }
 
   toggleTheme() {

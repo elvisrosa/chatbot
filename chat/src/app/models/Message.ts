@@ -1,9 +1,10 @@
 export class Message {
 
-    id: number = 0;
-    sender: string = '';
-    content: string = '';
-    timestamp: number = 0;
-    type?: string = '';
-    status: "sent" | "delivered" | "read" | "pending" = "sent";
+    id?: string;
+    to?: string;
+    from?: string;
+    content?: any;
+    timestamp?: Date;
+    type?: string;
+    status?: "sent" | "delivered" | "read" | "pending" | "pendig_acceptance";
 }

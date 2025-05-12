@@ -5,3 +5,7 @@ Content-Type: application/json
   "username": "admin",
   "password": "12345"
 }
+
+GET http://localhost:8080/api/er/me/contacts
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJwZXBlIiwiZXhwIjoxNzQ2OTcyNzI4fQ.R3Z2H3HyQKZlM_EoILEHmNXl1T7fQrR3_4vp1NwqwTI
+Content-Type: application/json

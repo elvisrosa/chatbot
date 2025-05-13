@@ -1,4 +1,4 @@
-<div class="chat-area" *ngIf="activeContact">
+<div class="chat-area" *ngIf="activeContact?.id">
     <div class="chat-header">
         <div class="chat-contact-info">
             <div class="back-button">
@@ -21,7 +21,7 @@
 
     <div class="messages-date">Hoy</div>
 
-    <div class="messages-container" #messagesContainer>
+    <div class="messages-container" #messagesContainer *ngIf="!isPending">
         <div *ngFor="let message of messages; trackBy: trackByMessageId" class="message-wrapper"
             [class.outgoing]="message.to === activeContact?.id">
             <div class="message">
@@ -34,7 +34,7 @@
             </div>
         </div>
 
-        <!--<div *ngIf="true" class="message-wrapper">
+        <div *ngIf="isTyping" class="message-wrapper">
             <div class="message">
                 <div class="typing-indicator">
                     <span></span>
@@ -42,24 +42,56 @@
                     <span></span>
                 </div>
             </div>
-        </div>-->
+        </div>
     </div>
 
-    <div class="chat-input-area">
+    <div *ngIf="isPending" class="messages-container pending-chat">
+        <div class="pending-banner">
+            <i class="material-icons">person_add</i>
+            <span>{{ activeContact?.name }} te ha enviado una solicitud de contacto</span>
+
+            <div class="pending-actions-compact">
+                <button class="reject-btn-compact" (click)="changeStatus('reject')">
+                    <i class="material-icons">close</i>
+                    Rechazar
+                </button>
+                <button class="accept-btn-compact" (click)="changeStatus('contact')">
+                    <i class="material-icons">check</i>
+                    Aceptar
+                </button>
+            </div>
+        </div>
+
+        <div class="message-wrapper" *ngFor="let msg of messages; trackBy: trackByMessageId">
+            <div class="message pending-message">
+                <div class="message-content">{{ msg.content.body }}</div>
+                <div class="message-meta">
+                    <span class="message-time">{{ msg.timestamp | date: 'hh:mm a'}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-input-area" [class.disabled]="isPending">
         <div class="input-actions">
             <i class="material-icons">emoji_emotions</i>
             <i class="material-icons">attach_file</i>
         </div>
-        <div class="message-input">
-            <input type="text" placeholder="Escribe un mensaje" [(ngModel)]="message.content"
+        <div class="message-input" *ngIf="!isPending && !limitMessageSendPending">
+            <input type="text" placeholder="Escribe un mensaje" [(ngModel)]="message.content" [disabled]="isPending"
                 (keyup.enter)="sendMessage()" (input)="onTyping()" />
         </div>
-        <div class="send-button" (click)="sendMessage()">
+        <div class="send-button" (click)="sendMessage()" *ngIf="!isPending">
             <i class="material-icons">{{ newMessage ? 'send' : 'mic' }}</i>
+        </div>
+
+        <div *ngIf="isPending || limitMessageSendPending" class="pending-input-message">
+            <i class="material-icons">lock</i>
+            <span> {{ getMessageBlocked() }} </span>
         </div>
     </div>
 </div>
 
-<ng-container *ngIf="!activeContact">
+<ng-container *ngIf="!activeContact?.id">
     Descarga la App disponible en la Play Store
 </ng-container>

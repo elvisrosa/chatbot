@@ -213,6 +213,282 @@
     color: white;
 }
 
+
+
+
+.pending-container {
+    background-color: var(--color-primary);
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgPHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmMGYyZjUiIC8+CiAgPHBhdGggZD0iTTAgMCBMMjAwIDIwMCBNMjAwIDAgTDAgMjAwIiBzdHJva2U9IiNlYmVlZjIiIHN0cm9rZS13aWR0aD0iMSIgLz4KPC9zdmc+');
+    overflow-y: auto;
+}
+
+.pending-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--color-primary);
+
+}
+
+.pending-avatar {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 15px;
+}
+
+.pending-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #5b68f2;
+}
+
+.pending-card h2 {
+    margin: 0 0 10px 0;
+    font-size: 22px;
+    color: #333;
+}
+
+.pending-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5b68f2;
+    font-size: 16px;
+    margin-bottom: 1px;
+}
+
+.pending-message i {
+    margin-right: 8px;
+}
+
+.pending-preview {
+    background-color: #f8f9fa;
+    background-color: var(--color-primary);
+
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    width: 100%;
+    text-align: left;
+}
+
+.preview-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    color: #5b68f2;
+    font-weight: 500;
+}
+
+.preview-header i {
+    margin-right: 8px;
+    font-size: 18px;
+}
+
+.preview-content {
+    padding: 10px;
+    background-color: white;
+    border-radius: 8px;
+    border-left: 3px solid #5b68f2;
+}
+
+.preview-content p {
+    margin: 0;
+    font-style: italic;
+    color: #555;
+}
+
+.pending-info {
+    background-color: #f0f8ff;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    width: 100%;
+    text-align: left;
+}
+
+.pending-info p {
+    margin: 0 0 10px 0;
+    font-weight: 500;
+}
+
+.pending-info ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.pending-info li {
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.pending-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.accept-btn,
+.reject-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.accept-btn {
+    background-color: #5b68f2;
+    color: white;
+}
+
+.reject-btn {
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.accept-btn:hover {
+    background-color: #4a57e1;
+}
+
+.reject-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.accept-btn i,
+.reject-btn i {
+    margin-right: 8px;
+}
+
+.pending-input-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 8px;
+    background-color: var(--color-bg);
+    border-radius: 21px;
+    color: #757575;
+}
+
+.pending-input-message i {
+    margin-right: 8px;
+    font-size: 18px;
+}
+
+
+
+/* Estilos para la vista de solicitud pendiente */
+
+.pending-chat {
+    position: relative;
+}
+
+.pending-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-primary);
+    padding: 10px;
+    margin-bottom: 2px;
+    border-radius: 8px;
+    color: #5b68f2;
+    font-weight: 500;
+}
+
+.pending-banner i {
+    margin-right: 8px;
+}
+
+.message-wrapper {
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.message-wrapper.outgoing {
+    justify-content: flex-end;
+}
+
+.message-wrapper:not(.outgoing) .message {
+    background-color: var(--color-bg);
+    border-top-left-radius: 0;
+}
+
+.message-wrapper.outgoing .message {
+    background-color: #dcf8c6;
+    border-top-right-radius: 0;
+}
+
+.pending-actions-compact {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-left: 5px;
+}
+
+.accept-btn-compact,
+.reject-btn-compact {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 32px;
+}
+
+.accept-btn-compact {
+    background-color: #5b68f2;
+    color: white;
+}
+
+.reject-btn-compact {
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.reject-btn-compact:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.accept-btn-compact i, .reject-btn-compact i {
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+
+
+
+
+
+
+
+
+
 /* Dark mode styles */
 :host-context(.dark-mode) .chat-area {
     background-color: var(--color-bg);
@@ -263,9 +539,34 @@
     background-color: #5b68f2;
 }
 
+:host-context(.dark-mode) .pending-banner {
+    background-color: rgba(91, 104, 242, 0.2);
+}
+
+:host-context(.dark-mode) .message-wrapper:not(.outgoing) .message {
+    background-color: #2a2a2a;
+}
+
+:host-context(.dark-mode) .message-wrapper.outgoing .message {
+    background-color: #0b3d1e;
+}
+
+:host-context(.dark-mode) .pending-message {
+    background-color: #2a2a2a !important;
+}
+
+:host-context(.dark-mode) .reject-btn-compact {
+    background-color: #333;
+    color: #f5f5f5;
+    border-color: #444;
+}
+
+:host-context(.dark-mode) .reject-btn-compact:hover {
+    background-color: #3a3a3a;
+}
+
 @media (max-width: 768px) {
     .back-button {
         display: block;
     }
 }
-

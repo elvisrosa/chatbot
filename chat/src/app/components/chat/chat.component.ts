@@ -1,5 +1,5 @@
 import { AfterViewChecked, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
-import { Message } from 'src/app/models/Message';
+import { Contact, Message } from 'src/app/models/Models';
 import { ChatService } from 'src/app/services/chat.service';
 import { WsService } from 'src/app/services/ws.service';
 import { Subject, Subscription } from 'rxjs';
@@ -15,13 +15,15 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   public message: Message = new Message();
   public messages: Message[] = [];
-  activeContact: any | undefined
+  public messagesPending: Message[] = [];
+  activeContact: Contact | null = null;
   @Input() isDarkMode = false
   @Output() sendMessage2 = new EventEmitter<string>()
   statusCurrentUser: string = '';
   private subscriptions?: Subscription;
   private typingSubscription?: Subscription;
-
+  public isPending: Boolean = false;
+  public limitMessageSendPending: Boolean = false;
 
   @ViewChild("messagesContainer") private messagesContainer!: ElementRef
 
@@ -38,8 +40,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.services_ws.initializeWebSocketConnection();
     this.loadSendMessages();
     this.auth.activeContact$.subscribe(contact => {
+      console.log('Contacto nuevo recibido en chat', contact)
       this.activeContact = contact;
       if (this.activeContact) {
+        this.isPending = contact.status === 'pendig_acceptance';
         this.isTypingF()
         this.loadMessages();
       }
@@ -47,11 +51,15 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   loadMessages() {
-    this.ctS.getMessages(this.activeContact.id).subscribe({
-      next: (data) => {
-        this.messages = data;
-      }
-    });
+    if (this.activeContact?.id) {
+      const id = this.activeContact?.id;
+      this.subscriptions?.add(this.ctS.getMessages(id).subscribe({
+        next: (data) => {
+          this.messages = data;
+          this.limitMessageSendPending = this.messages.filter(msg => msg.status === 'pendig_acceptance').length >= 2;
+        }
+      }))
+    }
   }
 
   loadSendMessages() {
@@ -61,6 +69,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         const alreadyExists = this.messages.some(m => m.id === msg.id || m.timestamp === msg.timestamp);
         if (!alreadyExists && (msg.from === this.activeContact?.id || msg.to === this.activeContact?.id)) {
           this.messages.unshift(msg);
+          this.limitMessageSendPending = this.messages.filter(msg => msg.status === 'pendig_acceptance').length >= 2;
         }
         if (!alreadyExists && msg.status === 'pendig_acceptance') {
           console.log('Te ha llegado en mensaje a un chat pendiente')
@@ -87,9 +96,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   isTypingF(): void {
+    if (!this.activeContact) return;
+    const currentContactId = this.activeContact.id;
+    const lastSeen = this.activeContact.lastSeen;
     this.typingSubscription?.unsubscribe();
     this.typingSubscription = this.services_ws.typing$.subscribe((message: any) => {
-      const currentContactId = this.activeContact?.id;
       if (message && message.from && message.from === currentContactId) {
         const type = message.type;
         if (type === 'typing') {
@@ -102,10 +113,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         } else if (type === 'online') {
           this.state = 'En línea';
         } else {
-          this.state = this.util.formatLastSeen(this.activeContact?.lastSeen)
+          this.state = this.util.formatLastSeen(lastSeen)
         }
       } else {
-        this.state = this.util.formatLastSeen(this.activeContact?.lastSeen)
+        this.state = this.util.formatLastSeen(lastSeen)
       }
     });
   }
@@ -121,19 +132,30 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   sendMessage(): void {
-    this.message.to = this.activeContact.id;
+    this.message.to = this.activeContact?.id;
     const newMessage = { ...this.message };
     this.services_ws.sendMessage(newMessage);
     this.message = new Message();
   }
 
+  changeStatus(status: string): void {
+    if (this.activeContact) {
+      this.services_ws.setupUpdateContactNotifier(this.activeContact, status)
+    }
+  }
 
   trackByMessageId(index: number, message: any): string {
     return message.id;
   }
 
   onTyping(): void {
-    this.services_ws.notifyTyping(this.activeContact);
+    if (this.activeContact) {
+      this.services_ws.notifyTyping(this.activeContact);
+    }
+  }
+
+  getMessageBlocked(): string {
+    return (this.limitMessageSendPending && this.messages[0].to == this.activeContact?.id) ? `${this.activeContact?.name} aún no acepta tu solicitud de mensaje` : 'Debes aceptar la solicitud para enviar mensajes';
   }
 
   ngOnDestroy(): void {

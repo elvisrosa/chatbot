@@ -1,7 +1,7 @@
 import { Injectable, OnInit } from '@angular/core';
 import { Client } from '@stomp/stompjs';
 import * as SockJS from 'sockjs-client';
-import { Message } from '../models/Message';
+import { Contact, Message } from '../models/Models';
 import { AuthService } from './auth.service';
 import { BehaviorSubject, debounceTime, Subject, Subscription, throttleTime } from 'rxjs';
 
@@ -12,21 +12,21 @@ export class WsService {
 
   private stompClient!: Client;
   private connected: boolean = false;
+  /**Observables para mensajes */
   private messageSubject = new Subject<Message>();
   public message$ = this.messageSubject.asObservable();
-
+  /**Observables para escrucha de escibir */
   private typingSubject = new Subject<void>();
-  private typingSubscription!: Subscription;
-  private typingStatusSubject = new BehaviorSubject<Message  | null>({
-    to: '',
-    type: '',
-    content: '',
-    timestamp: undefined,
-    from: ''
-  });
+  private typingStatusSubject = new BehaviorSubject<Message | null>(null);
   public typing$ = this.typingStatusSubject.asObservable();
+  /**Observables para escucha de nuevo contacto */
+  private newContactSubject = new BehaviorSubject<Contact | null>(null);
+  public newContact$ = this.newContactSubject.asObservable();
+  /**Usuario clickado actual */
 
-  private activeContact: any | undefined;
+  private updateContact = new BehaviorSubject<Boolean>(false);
+  public updateContact$ = this.updateContact.asObservable();
+  private activeContact: Contact | undefined;
 
   constructor(private auth: AuthService) { }
 
@@ -39,24 +39,40 @@ export class WsService {
         'Authorization': `Bearer ${token}`
       },
       debug: (str) => {
-      console.log(new Date(), str);
+        // console.log(new Date(), str);
       },
       reconnectDelay: 50000,
     });
 
     this.stompClient.onConnect = (frame) => {
       this.connected = true;
-      this.stompClient.subscribe('/user/queue/messages', (message) => {
-        const data = JSON.parse(message.body)
-        console.log(data)
-        this.messageSubject.next(data);
+      this.stompClient.subscribe('/user/queue/messages', (msg) => {
+        const message: Message = JSON.parse(msg.body)
+        this.messageSubject.next(message);
       });
 
-
-      this.stompClient.subscribe('/user/queue/typing', (message) => {
-        const data = JSON.parse(message.body)
-        this.typingStatusSubject.next(data);
+      this.stompClient.subscribe('/user/queue/typing', (msg) => {
+        const message: Message = JSON.parse(msg.body)
+        this.typingStatusSubject.next(message);
       });
+
+      this.stompClient.subscribe('/user/queue/new_contact', (notification) => {
+        const contact: Contact = JSON.parse(notification.body);
+        this.newContactSubject.next(contact);
+        console.log("Nuevo contacto recibido:", contact);
+      });
+
+      this.stompClient.subscribe('/user/queue/contact-updated', (update) => {
+        const status: Boolean = JSON.parse(update.body);
+        console.log('Data recibida por el update ', status)
+        if (status) {
+          this.newContactSubject.next(new Contact());
+          if (this.activeContact) {
+            this.auth.setActiveContact(this.activeContact);
+          }
+        }
+      });
+
 
       this.setupTypingNotifier();
 
@@ -86,6 +102,17 @@ export class WsService {
     }
   }
 
+  public isActiveStomp(): boolean {
+    return this.stompClient && this.stompClient.connected;
+  }
+
+
+  public notifyTyping(activeContact: Contact): void {
+    this.activeContact = activeContact;
+    this.typingSubject.next();
+  }
+
+
   public sendMessage(message: Message): void {
     if (this.connected) {
       this.stompClient.publish({
@@ -95,18 +122,25 @@ export class WsService {
     }
   }
 
-  public notifyTyping(activeContact: any): void {
-    this.activeContact = activeContact;
-    this.typingSubject.next();
+  public setupUpdateContactNotifier(contact: Contact, status: string): void {
+    if (this.isActiveStomp()) {
+      console.log(contact, status);
+      this.stompClient.publish({
+        destination: '/app/contact.update',
+        body: JSON.stringify({
+          contactId: contact.id,
+          status: status,
+        })
+      });
+    }
   }
 
-
   private setupTypingNotifier(): void {
-    this.typingSubscription = this.typingSubject
+    this.typingSubject
       .pipe(throttleTime(800))
       .subscribe(() => {
         const typingPayload = {
-          to: this.activeContact?.username || 'admin',
+          to: this.activeContact?.username,
           type: 'typing',
           content: '',
           timestamp: null,
@@ -120,7 +154,9 @@ export class WsService {
       });
   }
 
-  sendTypingNotification(activeContact: any, type: string) {
+
+
+  sendTypingNotification(activeContact: Contact, type: string) {
     const typingMessage = {
       to: activeContact.username,
       type: type,
@@ -135,7 +171,7 @@ export class WsService {
     });
   }
 
-  public resetValueTyping(){
+  public resetValueTyping() {
     this.typingStatusSubject.next({});
   }
 }

@@ -12,6 +12,8 @@ import com.elvis.springboot.chat.app.messagues.response.MessagesDto;
 import com.elvis.springboot.chat.app.messagues.response.UserDto;
 import com.elvis.springboot.chat.app.repositories.MessagesRepository;
 import com.elvis.springboot.chat.app.repositories.UserRepository;
+import com.elvis.springboot.chat.app.services.MessageService;
+
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,7 @@ import org.bson.types.ObjectId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -36,7 +39,7 @@ import java.util.stream.Collectors;
 public class WebController {
 
     private final UserRepository userRepository;
-    private final MessagesRepository messagesRepository;
+    private final MessageService messageService;
 
     @GetMapping("/me/contacts")
     public ResponseEntity<List<UserDto>> getMyContacts(Principal principal) {
@@ -46,19 +49,49 @@ public class WebController {
         log.info("Usuario encontrado con id {}", currentUser.toString());
         Map<ObjectId, String> statusByContactId = currentUser.getContacts().stream()
                 .collect(Collectors.toMap(Contact::getUserId, Contact::getStatus));
-        List<UserDto> contacts = userRepository.findByIdIn(new ArrayList<>(statusByContactId.keySet())).stream().map(user -> new UserDto(user, statusByContactId.get(user.getId()))).toList();
+        List<UserDto> contacts = userRepository.findByIdIn(new ArrayList<>(statusByContactId.keySet())).stream()
+                .map(user -> new UserDto(user, statusByContactId.get(user.getId()))).toList();
+        log.info("Contactos encontrados {}", contacts);
         return ResponseEntity.ok().body(contacts);
     }
 
     @GetMapping("/me/to")
-    public ResponseEntity<List<MessagesDto>> getMethodName(@RequestParam String receiverId, Principal principal) {
+    public ResponseEntity<List<MessagesDto>> getMessages(@RequestParam String receiverId, Principal principal) {
+
         String username = principal.getName();
         User currentUser = userRepository.findByUsername(username).orElse(null);
-        ObjectId receiver = new ObjectId(receiverId);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        ObjectId receiverObjectId = new ObjectId(receiverId);
+        User receiverUser = userRepository.findById(receiverObjectId).orElse(null);
+        if (receiverUser == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        log.info("Buscando mensajes entre el usaurio {} y el usuario destino {}", username, receiverUser.getUsername());
+
+        Optional<Contact> optionalContact = currentUser.getContacts().stream()
+                .filter(contact -> contact.getUserId().equals(receiverUser.getId()))
+                .findFirst();
+        String statusFilter = "";
         Sort sortByTimestamp = Sort.by(Sort.Direction.DESC, "timestamp");
-        List<MessagesDto> messages = messagesRepository
-                .findMessagesBetweenUsers(currentUser.getId(), receiver, sortByTimestamp)
-                .stream().map(message -> new MessagesDto(message)).toList();
+        int page = 0;
+        int size = 25;
+        if (optionalContact.isPresent()) {
+            log.info("Contacto", optionalContact.get());
+            Contact contact = optionalContact.get();
+            if ("pendig_acceptance".equals(contact.getStatus())) {
+                log.info("Es status pendiente");
+                statusFilter = "pendig_acceptance";
+                size = 2;
+            }
+        }
+        List<MessagesDto> messages = messageService
+                .findMessages(currentUser.getId(), receiverObjectId, statusFilter, page, size, sortByTimestamp)
+                .stream()
+                .map(MessagesDto::new)
+                .toList();
+
         return ResponseEntity.ok(messages);
     }
 
@@ -73,14 +106,14 @@ public class WebController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
         List<ObjectId> messageIdsList = messageIds.stream().map(ObjectId::new).toList();
-        List<Messages> messagesToUpdate = messagesRepository.findMessagesBetweenUsersWithIds(user.getId(),
+        List<Messages> messagesToUpdate = messageService.findMessagesBetweenUsersWithIds(user.getId(),
                 messageIdsList);
         log.info("Resultado {}", messagesToUpdate.size());
         for (Messages message : messagesToUpdate) {
             message.setStatus("read");
         }
 
-        messagesRepository.saveAll(messagesToUpdate);
+        messageService.saveAll(messagesToUpdate);
 
         return ResponseEntity.ok("Messages marked as read");
     }

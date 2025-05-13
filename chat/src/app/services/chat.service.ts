@@ -12,7 +12,7 @@ export class ChatService {
 
   public getMessages(receiverId: string): Observable<any> {
     const token = this.auth.getToken();
-    return this.http.get(`http://localhost:8080/api/er/me/to`, { params: { 'receiverId': receiverId || '' }, headers: { 'Authorization': `Bearer ${token}` } });
+    return this.http.get(`http://localhost:8080/api/er/me/to`, { params: { 'receiverId': receiverId }, headers: { 'Authorization': `Bearer ${token}` } });
   }
 
   markMessagesAsRead(messageIds: string[]): Observable<any> {

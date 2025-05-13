@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, take, tap } from 'rxjs';
+import { Contact, Response } from '../models/Models';
 
 @Injectable({
   providedIn: 'root'
@@ -10,7 +11,7 @@ export class AuthService {
   private authenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
   public authenticated$ = this.authenticatedSubject.asObservable();
 
-  private _activeContactSubject = new BehaviorSubject<null>(null);
+  private _activeContactSubject = new BehaviorSubject<Contact>(new Contact());
   public activeContact$ = this._activeContactSubject.asObservable();
 
   constructor(private http: HttpClient) { }
@@ -32,11 +33,12 @@ export class AuthService {
   }
 
 
-  setActiveContact(contact: any): void {
+  setActiveContact(contact: Contact): void {
+    console.log('Emitiendo nuevo valor al active contact', contact.username)
     this._activeContactSubject.next(contact);
   }
 
-  getActiveContact(): any | null {
+  getActiveContact(): Contact {
     return this._activeContactSubject.value;
   }
 
@@ -65,9 +67,3 @@ export class AuthService {
 
 }
 
-
-export class Response {
-  statusCode: number = 0;
-  message: string = '';
-  data: any;
-}

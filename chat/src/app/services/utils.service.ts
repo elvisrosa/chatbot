@@ -8,6 +8,7 @@ export class UtilsService {
   constructor() { }
 
   formatLastSeen(lastSeen: string): string {
+    if(!lastSeen) return 'Última vez desconocida';
     const date = new Date(lastSeen);
     if (isNaN(date.getTime())) return 'Última vez desconocida';
 
@@ -35,6 +36,8 @@ export class UtilsService {
         return "done_all"
       case "read":
         return "done_all"
+      case "pendig_acceptance":
+        return "check"
       default:
         return "schedule"
     }

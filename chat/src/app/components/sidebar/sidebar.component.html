@@ -61,7 +61,7 @@
 
     <div class="contacts-list">
         <div *ngFor="let contact of filteredContacts" class="contact-item"
-            [class.active]="contact.id === activeContact?.id" [class.pending]="contact.status === 'pending'"
+            [class.active]="contact.id === activeContact.id" [class.pending]="contact.status === 'pendig_acceptance'"
             (click)="selectContact(contact)">
             <div class="contact-avatar">
                 <img [src]="contact.profilePicture" [alt]="contact.name" />
@@ -75,22 +75,11 @@
                     <p *ngIf="contact.status !== 'pendig_acceptance'">{{ contact.name }}</p>
                     <p *ngIf="contact.status === 'pendig_acceptance'" class="pending-text">Solicitud de contacto</p>
                     <div class="message-status" *ngIf="contact.status !== 'pendig_acceptance'">
-                        <span *ngIf="false" class="unread-count">{{ contact.unreadCount }}</span>
+                        <span *ngIf="true" class="unread-count">{{ '2' }}</span>
                         <i *ngIf="true" class="material-icons read-status">{{
-                            getStatusIcon(contact.lastMessageStatus) }}</i>
+                            getStatusIcon('active') }}</i>
                     </div>
                 </div>
-            </div>
-
-            <!-- Botones para aceptar o rechazar solicitud de contacto -->
-            <div class="contact-actions" *ngIf="contact.status === 'pendig_acceptance'">
-                <!--(click)="acceptContact($event, contact)"-->
-                <button class="accept-btn">
-                    <i class="material-icons">check</i>
-                </button>
-                <button class="reject-btn">
-                    <i class="material-icons">close</i>
-                </button>
             </div>
         </div>
     </div>

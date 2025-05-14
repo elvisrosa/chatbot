@@ -19,22 +19,66 @@
         </div>
     </div>
 
-    <div class="messages-date">Hoy</div>
+    <!--<div class="messages-date">Hoy</div>-->
+    <div class="messages-date" [class.visible]="!isScrolling">
+        {{ 'HOY' }}
+    </div>
 
-    <div class="messages-container" #messagesContainer *ngIf="!isPending">
+    <div *ngIf="!isPending" #messagesContainer class="messages-container" (scroll)="onScroll()">
         <div *ngFor="let message of messages; trackBy: trackByMessageId" class="message-wrapper"
-            [class.outgoing]="message.to === activeContact?.id">
+            [class.outgoing]="message.to === activeContact?.id" #messageElement>
+            <div class="messages-date" #dateHeader>{{ message.timestamp | dateformat }}</div>
             <div class="message">
                 <div class="message-content">{{ message.content?.body }}</div>
                 <div class="message-meta">
                     <span class="message-time">{{ message.timestamp | date: 'hh:mm a' }}</span>
-                    <i *ngIf="true" class="material-icons status-icon">{{ util.getStatusIcon(message.status || '')
-                        }}</i>
+                    <i *ngIf="true" class="material-icons status-icon">
+                        {{ util.getStatusIcon(message.status ||'')}}
+                    </i>
                 </div>
             </div>
         </div>
 
-        <div *ngIf="isTyping" class="message-wrapper">
+        <!--<div *ngIf="isTyping" class="message-wrapper">
+            <div class="message">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>-->
+    </div>
+
+
+
+
+
+    <!--<div class="messages-container" #messagesContainer *ngIf="!isPending">
+        <ng-container *ngFor="let message of messages; trackBy: trackByMessageId">
+            <div *ngIf="message.to === activeContact?.id" class="message-wrapper outgoing">
+                <div class="message">
+                    <div class="message-content">{{ message.content?.body }}</div>
+                    <div class="message-meta">
+                        <span class="message-time">{{ message.timestamp | date: 'hh:mm a' }}</span>
+                        <i class="material-icons status-icon">{{ util.getStatusIcon(message.status || '') }}</i>
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="message.to !== activeContact?.id" class="message-wrapper incoming">
+                <div class="message">
+                    <div class="message-content">{{ message.content?.body }}</div>
+                    <div class="message-meta">
+                        <span class="message-time">{{ message.timestamp | date: 'hh:mm a' }}</span>
+                        <i *ngIf="message.status" class="material-icons status-icon">{{
+                            util.getStatusIcon(message.status) }}</i>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+
+        <div *ngIf="isTyping" class="message-wrapper incoming">
             <div class="message">
                 <div class="typing-indicator">
                     <span></span>
@@ -43,7 +87,9 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>-->
+
+
 
     <div *ngIf="isPending" class="messages-container pending-chat">
         <div class="pending-banner">
@@ -79,9 +125,9 @@
         </div>
         <div class="message-input" *ngIf="!isPending && !limitMessageSendPending">
             <input type="text" placeholder="Escribe un mensaje" [(ngModel)]="message.content" [disabled]="isPending"
-                (keyup.enter)="sendMessage()" (input)="onTyping()" />
+                (keyup.enter)="onSendMessage()" (input)="onTyping()" />
         </div>
-        <div class="send-button" (click)="sendMessage()" *ngIf="!isPending">
+        <div class="send-button" (click)="onSendMessage()" *ngIf="!isPending">
             <i class="material-icons">{{ newMessage ? 'send' : 'mic' }}</i>
         </div>
 

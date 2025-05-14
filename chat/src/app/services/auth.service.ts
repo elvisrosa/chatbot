@@ -8,7 +8,7 @@ import { Contact, Response } from '../models/Models';
 })
 export class AuthService {
 
-  private authenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
+  private authenticatedSubject = new BehaviorSubject<boolean>(false);
   public authenticated$ = this.authenticatedSubject.asObservable();
 
   private _activeContactSubject = new BehaviorSubject<Contact>(new Contact());
@@ -28,14 +28,15 @@ export class AuthService {
     localStorage.removeItem('tksrtath');
   }
 
-  get isAuthenticated(): boolean {
+  isAuthenticated(): boolean {
     return this.authenticatedSubject.value;
   }
 
-
   setActiveContact(contact: Contact): void {
-    console.log('Emitiendo nuevo valor al active contact', contact.username)
-    this._activeContactSubject.next(contact);
+    if (contact) {
+      console.log('Emitiendo nuevo valor al active contact', contact.username)
+      this._activeContactSubject.next(contact);
+    }
   }
 
   getActiveContact(): Contact {
@@ -58,7 +59,11 @@ export class AuthService {
 
   logout() {
     this.deleteToken();
-    return this.http.post('http://localhost:8080/api/auth/logout', {});
+    this.authenticatedSubject.next(false)
+  }
+
+  authenticateUser(status: boolean = false): void {
+    this.authenticatedSubject.next(status)
   }
 
   hasToken(): boolean {

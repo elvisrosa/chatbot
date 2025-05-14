@@ -15,9 +15,31 @@
             <i class="material-icons">archive</i>
             <i class="material-icons">help</i>
             <i class="material-icons">more_horiz</i>
-            <i class="material-icons">group</i>
             <i class="material-icons">menu</i>-->
-            <i class="material-icons">more_vert</i>
+            <i class="material-icons action-icon">group</i>
+            <i class="material-icons action-icon" (click)="toggleMenu($event)">more_vert</i>
+
+            <div class="dropdown-menu1" [class.show]="showMenu" #dropdownMenu>
+                <div class="dropdown-backdrop" (click)="closeMenu()"></div>
+                <div class="dropdown-content">
+                    <div class="dropdown-item">
+                        <span>Nuevo grupo</span>
+                    </div>
+                    <div class="dropdown-item">
+                        <span>Mensajes destacados</span>
+                    </div>
+                    <div class="dropdown-item">
+                        <span>Seleccionar chats</span>
+                    </div>
+                    <div class="dropdown-item">
+                        <span>Configuración</span>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-item" (click)="handleMenuAction('logout')">
+                        <span>Cerrar sesión</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -34,30 +56,6 @@
         <div class="tab">Estados</div>
         <div class="tab">Llamadas</div>
     </div>
-
-    <!---<div class="contacts-list">
-        <div *ngFor="let contact of filteredContacts" class="contact-item"
-            [class.active]="contact.id === activeContact?.id" (click)="selectContact(contact)" [class.contact] = "contact.status">
-            <div class="contact-avatar">
-                <img [src]="contact.profilePicture" [alt]="contact.name" />
-            </div>
-            <div class="contact-info">
-                <div class="contact-name-time">
-                    <h3>{{ contact.name }}</h3>
-                    <span class="time">{{ contact.lastSeen | date: 'hh:mm'}}</span>
-                </div>
-                <div class="contact-message-status">
-                    <p>{{ contact.name }}</p>
-                    <div class="message-status">
-                        <span *ngIf="false" class="unread-count">{{ contact.unreadCount }}</span>
-                        <i *ngIf="true" class="material-icons read-status">{{
-                            getStatusIcon(contact.lastMessageStatus) }}</i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>-->
-
 
     <div class="contacts-list">
         <div *ngFor="let contact of filteredContacts" class="contact-item"
@@ -76,7 +74,7 @@
                     <p *ngIf="contact.status === 'pendig_acceptance'" class="pending-text">Solicitud de contacto</p>
                     <div class="message-status" *ngIf="contact.status !== 'pendig_acceptance'">
                         <span *ngIf="true" class="unread-count">{{ '2' }}</span>
-                        <i *ngIf="true" class="material-icons read-status">{{
+                        <i *ngIf="false" class="material-icons read-status">{{
                             getStatusIcon('active') }}</i>
                     </div>
                 </div>

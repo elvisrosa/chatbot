@@ -11,13 +11,11 @@ export class ChatService {
   constructor(private http: HttpClient, private auth: AuthService) { }
 
   public getMessages(receiverId: string): Observable<any> {
-    const token = this.auth.getToken();
-    return this.http.get(`http://localhost:8080/api/er/me/to`, { params: { 'receiverId': receiverId }, headers: { 'Authorization': `Bearer ${token}` } });
+    return this.http.get(`http://localhost:8080/api/er/me/to`, { params: { 'receiverId': receiverId } });
   }
 
   markMessagesAsRead(messageIds: string[]): Observable<any> {
-    const token = this.auth.getToken();
-    return this.http.put(`http://localhost:8080/api/er/me/mark-as-read`, messageIds, { headers: { 'Authorization': `Bearer ${token}` } });
+    return this.http.put(`http://localhost:8080/api/er/me/mark-as-read`, messageIds);
 
   }
 

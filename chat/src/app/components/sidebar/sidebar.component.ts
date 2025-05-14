@@ -1,5 +1,6 @@
 import { HttpResponse } from '@angular/common/http';
 import { AfterViewInit, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Contact } from 'src/app/models/Models';
 import { AuthService } from 'src/app/services/auth.service';
@@ -19,13 +20,16 @@ export class SidebarComponent implements OnInit, OnDestroy {
   activeContact!: Contact;
   contacts: Contact[] = [];
   searchTerm: string = "";
+  showMenu: Boolean = false
 
-  constructor(private userService: UserService, private auth: AuthService, private ws: WsService) {
+
+  constructor(private userService: UserService, private auth: AuthService, private ws: WsService, private router: Router) {
     this.subscriptions = new Subscription();
   }
 
   ngOnDestroy(): void {
     this.subscriptions?.unsubscribe();
+    document.removeEventListener("click", this.documentClickListener)
   }
 
   ngOnInit(): void {
@@ -93,4 +97,44 @@ export class SidebarComponent implements OnInit, OnDestroy {
     }
   }
 
+
+
+
+
+  toggleMenu(event: Event) {
+    event.stopPropagation()
+    this.showMenu = !this.showMenu
+
+    // Cerrar el menú cuando se hace clic fuera de él
+    if (this.showMenu) {
+      setTimeout(() => {
+        document.addEventListener("click", this.documentClickListener)
+      })
+    }
+  }
+
+  closeMenu() {
+    this.showMenu = false
+    document.removeEventListener("click", this.documentClickListener)
+  }
+
+  handleMenuAction(action: string) {
+    this.closeMenu()
+    switch (action) {
+      case "logout":
+        this.auth.logout()
+        break;
+      case "settings":
+        break;
+    }
+    // this.menuAction.emit(action)
+
+    // Aquí puedes manejar acciones específicas si lo necesitas
+    console.log(`Acción del menú: ${action}`)
+  }
+
+
+  documentClickListener = () => {
+    this.closeMenu()
+  }
 }

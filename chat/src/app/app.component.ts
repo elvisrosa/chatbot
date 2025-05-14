@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from './services/auth.service';
 import { ThemeService } from './services/theme.service';
+import { Contact } from './models/Models';
 
 @Component({
   selector: 'app-root',
@@ -9,8 +10,8 @@ import { ThemeService } from './services/theme.service';
 })
 export class AppComponent implements OnInit {
 
-  isDarkMode = false
-  activeContact: any | null = null;
+  isDarkMode: boolean = false
+  activeContact: Contact | null = null;
   authenticated: boolean = false
 
   constructor(private auth: AuthService, private theme: ThemeService) { }
@@ -20,6 +21,10 @@ export class AppComponent implements OnInit {
       this.authenticated = auth;
     });
 
+    if (this.auth.getToken()) {
+      this.auth.authenticateUser(true)
+    }
+
     this.auth.activeContact$.subscribe(contact => {
       this.activeContact = contact;
     });
@@ -27,7 +32,7 @@ export class AppComponent implements OnInit {
     this.isDarkMode = this.theme.isDarkMode;
   }
 
-  set setActiveContact(contact: any) {
+  set setActiveContact(contact: Contact) {
     this.auth.setActiveContact(contact);
   }
 

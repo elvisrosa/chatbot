@@ -19,8 +19,9 @@ public class UserDto {
     private boolean online;
     private LocalDateTime lastSeen;
     private String status;
+    private int unreadMessages;
 
-    public UserDto(User user, String status) {
+    public UserDto(User user, String status, int unreadMessages) {
         this.id = user.getId().toHexString();
         this.username = user.getUsername();
         this.name = user.getName();
@@ -30,6 +31,7 @@ public class UserDto {
         this.online = user.getOnline();
         this.lastSeen = user.getLastSeen();
         this.status = status;
+        this.unreadMessages = unreadMessages;
     }
 
 }

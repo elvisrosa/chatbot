@@ -13,44 +13,29 @@ import { AuthService } from 'src/app/services/auth.service';
 })
 export class ChatComponent implements OnInit, AfterViewInit {
 
+  @Input() isDarkMode = false;
+  @Output() sendMessage2 = new EventEmitter<string>();
   public message: Message = new Message();
   public messages: Message[] = [];
   public messagesPending: Message[] = [];
-  activeContact: Contact | null = null;
-  @Input() isDarkMode = false
-  @Output() sendMessage2 = new EventEmitter<string>()
-  statusCurrentUser: string = '';
+  public activeContact: Contact | null = null;
+  public statusCurrentUser: string = '';
   private subscriptions?: Subscription;
   private typingSubscription?: Subscription;
   public isPending: Boolean = false;
   public limitMessageSendPending: Boolean = false;
-
-  // @ViewChild("messagesContainer") private messagesContainer!: ElementRef
+  public currentDateDisplay: string = "";
+  private observer: IntersectionObserver | null = null;
+  public newMessage: string = ""
+  public state: String = ''
+  public isTyping = false;
+  private groupedMessages: { date: Date; messages: Message[] }[] = []
+  public isScrolling: boolean = false
+  private scrollTimeout: any = null
   @ViewChild('messagesContainer', { static: false }) messagesContainer!: ElementRef;
   @ViewChildren("messageElement") private messageElements!: QueryList<ElementRef>
   @ViewChildren('dateHeader') dateHeaders!: QueryList<ElementRef>;
   @ViewChild('messageInput') messageInput!: ElementRef<HTMLInputElement>;
-
-  private resizeObserver: ResizeObserver | null = null;
-  currentDateDisplay: string = "";
-  private observer: IntersectionObserver | null = null;
-  newMessage = ""
-  state: String = ''
-  isTyping = false;
-
-
-
-  /**
-   * 
-   * @param services_ws 
-   * @param ctS 
-   * @param util 
-   * @param auth 
-   */
-
-  groupedMessages: { date: Date; messages: Message[] }[] = []
-  isScrolling: boolean = false
-  scrollTimeout: any = null
 
   constructor(private services_ws: WsService, private ctS: ChatService, public util: UtilsService, private auth: AuthService) {
     this.subscriptions = new Subscription();
@@ -61,8 +46,8 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.services_ws.initializeWebSocketConnection();
     this.loadSendMessages();
     this.auth.activeContact$.subscribe(contact => {
-      this.activeContact = contact;
-      if (this.activeContact) {
+      if (contact) {
+        this.activeContact = contact;
         setTimeout(() => this.focusInputMessage())
         this.currentDateDisplay = '';
         this.isPending = contact.status === 'pendig_acceptance';
@@ -78,7 +63,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
       const id = this.activeContact?.id;
       this.subscriptions?.add(this.ctS.getMessages(id).subscribe({
         next: (data) => {
-          this.messages = data;
+          this.messages = data.data;
           this.limitMessageSendPending = this.messages.filter(msg => msg.status === 'pendig_acceptance').length >= 2;
           this.groupMessagesByDate();
           setTimeout(() => {
@@ -99,11 +84,11 @@ export class ChatComponent implements OnInit, AfterViewInit {
           this.limitMessageSendPending = this.messages.filter(msg => msg.status === 'pendig_acceptance').length >= 2;
         }
         if (!alreadyExists && msg.status === 'pendig_acceptance') {
-          console.log('Te ha llegado en mensaje a un chat pendiente')
+          this.isPending = true;
         }
-      }))
+      }
+      ))
   }
-
 
   isTypingF(): void {
     if (!this.activeContact) return;
@@ -172,24 +157,14 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.services_ws.disconnect()
     this.subscriptions?.unsubscribe();
     this.typingSubscription?.unsubscribe();
-    this.resizeObserver?.disconnect();
-
-    if (this.observer) {
-      this.observer.disconnect()
-    }
-
-    if (this.scrollTimeout) {
-      clearTimeout(this.scrollTimeout)
-    }
+    if (this.observer) this.observer.disconnect()
+    if (this.scrollTimeout) clearTimeout(this.scrollTimeout)
   }
 
 
   setupIntersectionObserver() {
 
-    if (this.observer) {
-      this.observer.disconnect();
-    }
-
+    if (this.observer) this.observer.disconnect();
     if (!this.messagesContainer || !this.messagesContainer.nativeElement) return;
 
     this.observer = new IntersectionObserver((entries) => {
@@ -199,7 +174,6 @@ export class ChatComponent implements OnInit, AfterViewInit {
           return a.boundingClientRect.top - b.boundingClientRect.top;
         });
 
-      console.log('visibleEntries', visibleEntries)
       if (visibleEntries.length > 0) {
         this.updateCurrentDate(visibleEntries[0].target);
       }
@@ -220,11 +194,9 @@ export class ChatComponent implements OnInit, AfterViewInit {
     });
   }
 
-
   private updateCurrentDate(messageElement: Element) {
     const messageEl = messageElement as HTMLElement;
     const messageWrapper = messageEl.closest('.message-wrapper');
-
     if (messageWrapper) {
       const dateHeader = messageWrapper.querySelector('.messages-date') as HTMLElement;
       if (dateHeader) {
@@ -239,7 +211,6 @@ export class ChatComponent implements OnInit, AfterViewInit {
 
 
   groupMessagesByDate(): void {
-
     if (!this.messages || this.messages.length === 0) {
       this.groupedMessages = []
       return

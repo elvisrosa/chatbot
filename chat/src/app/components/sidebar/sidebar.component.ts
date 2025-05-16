@@ -2,7 +2,7 @@ import { HttpResponse } from '@angular/common/http';
 import { AfterViewInit, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Contact, MenuOption } from 'src/app/models/Models';
+import { Contact, MenuOption, Message } from 'src/app/models/Models';
 import { AuthService } from 'src/app/services/auth.service';
 import { UserService } from 'src/app/services/user.service';
 import { WsService } from 'src/app/services/ws.service';
@@ -15,12 +15,13 @@ import { WsService } from 'src/app/services/ws.service';
 
 export class SidebarComponent implements OnInit, OnDestroy {
 
-  @Input() autenticated: boolean = false
+  @Input() autenticated: boolean = false;
   private subscriptions?: Subscription;
-  activeContact!: Contact;
+  activeContact!: Contact | null;
   contacts: Contact[] = [];
   searchTerm: string = "";
   showMenu: boolean = false
+  messageNotRead: number = 0;
   options: MenuOption[] = [
     {
       label: 'Nuevo grupo',
@@ -55,7 +56,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
 
   constructor(private userService: UserService, private auth: AuthService,
-    private ws: WsService, private router: Router) {
+    private ws: WsService) {
     this.subscriptions = new Subscription();
   }
 
@@ -65,12 +66,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
     }))
     this.getContact();
     this.listeningChangeContacts();
+    this.listeningNewMessage();
   }
 
   getContact() {
     this.subscriptions?.add(this.userService.getContacts().subscribe({
       next: (response) => {
-        this.contacts = response;
+        this.contacts = response.data;
       },
       error: (error: any) => { },
       complete: () => { }
@@ -88,6 +90,20 @@ export class SidebarComponent implements OnInit, OnDestroy {
       error: (error: any) => { },
       complete: () => { }
     }))
+  }
+
+  listeningNewMessage(): void {
+    this.subscriptions?.add(
+      this.ws.message$.subscribe((message: Message) => {
+        if (!message) return;
+        this.contacts = this.contacts.map(contact => {
+          if (contact.id === message.from) {
+            console.log('Contacto encontrado en la lista ', contact)
+            
+          };
+          return contact;
+        })
+      }))
   }
 
   listeningUpdateContact(): void {

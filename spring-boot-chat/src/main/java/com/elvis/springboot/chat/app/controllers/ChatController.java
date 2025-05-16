@@ -15,6 +15,8 @@ import org.springframework.stereotype.Controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -38,12 +40,6 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final MessageService messageService;
     private final UserRepository userRepository;
-
-    @GetMapping("/info")
-    @ResponseBody
-    public String saludar() {
-        return "Hola desde el backend";
-    }
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload Message message, Principal principal) {
@@ -115,11 +111,12 @@ public class ChatController {
                     .isBlocked(false)
                     .nickname(currentUser.getName())
                     .userId(currentUserid)
+                    .unreadMessages(1)
                     .build();
             receiverUser.getContacts().add(contactPending);
             User userCreated = userRepository.save(receiverUser);
             log.info("User creaddo {}", userCreated);
-            UserDto newUser = new UserDto(currentUser, "pendig_acceptance");
+            UserDto newUser = new UserDto(currentUser, "pendig_acceptance", contactPending.getUnreadMessages());
             messagingTemplate.convertAndSendToUser(
                     receiverUser.getUsername(),
                     "/queue/new_contact",
@@ -198,5 +195,28 @@ public class ChatController {
                 contact);
         log.info("Se notifico a los usuarios {}, {}", contactUser.getUsername(), currentUser.getUsername());
 
+    }
+
+    @PutMapping("/me/mark-as-read")
+    public ResponseEntity<?> markMessagesAsRead(@RequestBody List<String> messageIds, Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
+        }
+
+        User user = userRepository.findByUsername(principal.getName()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        List<ObjectId> messageIdsList = messageIds.stream().map(ObjectId::new).toList();
+        List<Messages> messagesToUpdate = messageService.findMessagesBetweenUsersWithIds(user.getId(),
+                messageIdsList);
+        log.info("Resultado {}", messagesToUpdate.size());
+        for (Messages message : messagesToUpdate) {
+            message.setStatus("read");
+        }
+
+        messageService.saveAll(messagesToUpdate);
+
+        return ResponseEntity.ok("Messages marked as read");
     }
 }

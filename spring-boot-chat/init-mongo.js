@@ -60,9 +60,9 @@ const users = [
 
 // Agregar contactos a admin
 users[0].contacts = [
-  { userId: users[1]._id, nickname: "Juan", isBlocked: false, status : "pendig_acceptance" },
-  { userId: users[2]._id, nickname: "Pepe", isBlocked: false, status: "contact" },
-  { userId: users[3]._id, nickname: "Maria", isBlocked: false, status: "contact" }
+  { userId: users[1]._id, nickname: "Juan", isBlocked: false, status : "pendig_acceptance", unreadMessages: 0 },
+  { userId: users[2]._id, nickname: "Pepe", isBlocked: false, status: "contact", unreadMessages: 0 },
+  { userId: users[3]._id, nickname: "Maria", isBlocked: false, status: "contact", unreadMessages: 0 }
 ];
 
 // Crear grupo test

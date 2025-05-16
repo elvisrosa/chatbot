@@ -24,6 +24,7 @@ export class Contact {
     status?: "pendig_acceptance" | "reject" | "contact";
     statusMessage: string = '';
     username: string = '';
+    unreadMessages: number = 0;
 }
 
 export class MenuOption {
@@ -31,4 +32,9 @@ export class MenuOption {
     label?: string = '';
     divider?: boolean = false;
     action?: string = '';
+}
+
+export class UserLogin {
+    username: string = '';
+    password: string = '';
 }

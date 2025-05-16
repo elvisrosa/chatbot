@@ -1,16 +1,21 @@
 package com.elvis.springboot.chat.app.services;
 
+import java.util.Map;
 import java.util.Optional;
 
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.aggregation.StringOperators.Concat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.elvis.springboot.chat.app.documents.Contact;
 import com.elvis.springboot.chat.app.documents.User;
 import com.elvis.springboot.chat.app.jwt.utils.JwtUtil;
 import com.elvis.springboot.chat.app.messagues.requests.Login;
 import com.elvis.springboot.chat.app.messagues.response.Response;
+import com.elvis.springboot.chat.app.messagues.response.UserDto;
 import com.elvis.springboot.chat.app.repositories.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,6 +50,16 @@ public class AuthService {
         }
         String token = jwtUtil.generateToken(username);
         return new Response(HttpStatus.OK.value(), "Login successful", token);
+
+    }
+
+    public Response loadUserByUsername(String username) {
+        Optional<User> user = userRepository.findByUsername(username);
+        if (user.isEmpty()) {
+            return new Response(HttpStatus.NOT_FOUND.value(), "User not found");
+        }
+        UserDto userResponse = new UserDto(user.get(), null, 0);
+        return new Response(HttpStatus.OK.value(), "User", userResponse);
 
     }
 

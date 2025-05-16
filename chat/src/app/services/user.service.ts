@@ -12,7 +12,7 @@ export class UserService {
 
   public getContacts(): Observable<any> {
     const token = this.auth.getToken();
-    return this.htt.get<any>('http://localhost:8080/api/er/me/contacts', {
+    return this.htt.get<Response>('http://localhost:8080/api/er/me/contacts', {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`

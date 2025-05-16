@@ -1,4 +1,6 @@
+import { HttpStatusCode } from '@angular/common/http';
 import { Component, Input, OnInit } from '@angular/core';
+import { UserLogin } from 'src/app/models/Models';
 import { AuthService } from 'src/app/services/auth.service';
 import { ThemeService } from 'src/app/services/theme.service';
 
@@ -26,14 +28,14 @@ export class LoginComponent implements OnInit {
   }
 
   login(): void {
-    const user = {
+    const user: UserLogin = {
       username: this.username,
       password: this.password
     };
     this.loading = true;
     this.auth.login(user).subscribe({
-      next: () => {
-        this.loading = false;
+      next: (response) => {
+        console.log('Usuario logueado', response)
       },
       error: (error) => {
         console.error('Login failed', error);
@@ -41,7 +43,6 @@ export class LoginComponent implements OnInit {
       },
       complete: () => {
         this.loading = false;
-;
       }
     });
 

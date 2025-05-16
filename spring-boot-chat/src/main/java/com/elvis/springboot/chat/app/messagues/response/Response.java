@@ -17,6 +17,11 @@ public class Response {
         this.statusCode = statusCode;
     }
 
+     public Response(int statusCode, Object data) {
+        this.data = data;
+        this.statusCode = statusCode;
+    }
+
     public String getMessage() {
         return message;
     }

@@ -1,12 +1,22 @@
-<app-login [isDarkMode]="isDarkMode" *ngIf="!authenticated"></app-login>
-<div class="app-container" [class.dark-mode]="isDarkMode" *ngIf="authenticated">
+<div [ngSwitch]="authState">
+
+  <div *ngSwitchCase="'loading'" class="loading-screen">
+    <div class="spinner"></div>
+    <p>Cargando usuario...</p>
+  </div>
+
+  <app-login *ngSwitchCase="'unauthenticated'" [isDarkMode]="isDarkMode"></app-login>
+
+  <div *ngSwitchCase="'authenticated'" class="app-container" [class.dark-mode]="isDarkMode">
     <aside class="sidebar-container">
-        <app-sidebar *ngIf="authenticated" [autenticated]="authenticated"></app-sidebar>
+      <app-sidebar [autenticated]="authenticated"></app-sidebar>
     </aside>
     <main class="chat-container">
-        <app-chat [isDarkMode]="isDarkMode" *ngIf="authenticated"></app-chat>
+      <app-chat [isDarkMode]="isDarkMode"></app-chat>
     </main>
     <div class="theme-toggle" (click)="toggleTheme()">
-        <i class="material-icons">{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</i>
+      <i class="material-icons">{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</i>
     </div>
+  </div>
+
 </div>

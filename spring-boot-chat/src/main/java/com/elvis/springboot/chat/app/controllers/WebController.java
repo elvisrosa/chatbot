@@ -9,6 +9,7 @@ import com.elvis.springboot.chat.app.documents.Contact;
 import com.elvis.springboot.chat.app.documents.Messages;
 import com.elvis.springboot.chat.app.documents.User;
 import com.elvis.springboot.chat.app.messagues.response.MessagesDto;
+import com.elvis.springboot.chat.app.messagues.response.Response;
 import com.elvis.springboot.chat.app.messagues.response.UserDto;
 import com.elvis.springboot.chat.app.repositories.MessagesRepository;
 import com.elvis.springboot.chat.app.repositories.UserRepository;
@@ -16,6 +17,7 @@ import com.elvis.springboot.chat.app.services.MessageService;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -42,31 +44,38 @@ public class WebController {
     private final MessageService messageService;
 
     @GetMapping("/me/contacts")
-    public ResponseEntity<List<UserDto>> getMyContacts(Principal principal) {
+    public ResponseEntity<Response> getMyContacts(Principal principal) {
         String username = null != principal ? principal.getName() : null;
+        if (username == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).body(new Response(401, "Unhautorized user"));
+        }
         User currentUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         log.info("Usuario encontrado con id {}", currentUser.toString());
-        Map<ObjectId, String> statusByContactId = currentUser.getContacts().stream()
-                .collect(Collectors.toMap(Contact::getUserId, Contact::getStatus));
-        List<UserDto> contacts = userRepository.findByIdIn(new ArrayList<>(statusByContactId.keySet())).stream()
-                .map(user -> new UserDto(user, statusByContactId.get(user.getId()))).toList();
-        log.info("Contactos encontrados {}", contacts);
-        return ResponseEntity.ok().body(contacts);
+        Map<ObjectId, Contact> contactMap = currentUser.getContacts().stream()
+                .collect(Collectors.toMap(Contact::getUserId, c -> c));
+        List<UserDto> contacts = userRepository.findByIdIn(new ArrayList<>(contactMap.keySet())).stream()
+                .map(user -> {
+                    Contact contact = contactMap.get(user.getId());
+                    int unreadCount = contact.getUnreadMessages();
+                    String status = contact != null ? contact.getStatus() : "unknown";
+                    return new UserDto(user, status, unreadCount);
+                }).toList();
+        return ResponseEntity.ok().body(new Response(200, "Contacts list", contacts));
     }
 
     @GetMapping("/me/to")
-    public ResponseEntity<List<MessagesDto>> getMessages(@RequestParam String receiverId, Principal principal) {
+    public ResponseEntity<Response> getMessages(@RequestParam String receiverId, Principal principal) {
 
         String username = principal.getName();
         User currentUser = userRepository.findByUsername(username).orElse(null);
         if (currentUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).body(new Response(401, "Unhautorized user"));
         }
         ObjectId receiverObjectId = new ObjectId(receiverId);
         User receiverUser = userRepository.findById(receiverObjectId).orElse(null);
         if (receiverUser == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).body(new Response(404, "User not found"));
         }
         log.info("Buscando mensajes entre el usaurio {} y el usuario destino {}", username, receiverUser.getUsername());
 
@@ -92,30 +101,7 @@ public class WebController {
                 .map(MessagesDto::new)
                 .toList();
 
-        return ResponseEntity.ok(messages);
-    }
-
-    @PutMapping("/me/mark-as-read")
-    public ResponseEntity<?> markMessagesAsRead(@RequestBody List<String> messageIds, Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
-        }
-
-        User user = userRepository.findByUsername(principal.getName()).orElse(null);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-        List<ObjectId> messageIdsList = messageIds.stream().map(ObjectId::new).toList();
-        List<Messages> messagesToUpdate = messageService.findMessagesBetweenUsersWithIds(user.getId(),
-                messageIdsList);
-        log.info("Resultado {}", messagesToUpdate.size());
-        for (Messages message : messagesToUpdate) {
-            message.setStatus("read");
-        }
-
-        messageService.saveAll(messagesToUpdate);
-
-        return ResponseEntity.ok("Messages marked as read");
+        return ResponseEntity.ok(new Response(200, messages));
     }
 
 }

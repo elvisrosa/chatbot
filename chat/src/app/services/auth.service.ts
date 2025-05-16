@@ -1,17 +1,17 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpStatusCode } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, take, tap } from 'rxjs';
-import { Contact, Response } from '../models/Models';
+import { BehaviorSubject, concat, concatMap, Observable, of, switchMap, take, tap } from 'rxjs';
+import { Contact, Response, UserLogin } from '../models/Models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
 
-  private authenticatedSubject = new BehaviorSubject<boolean>(false);
+  private authenticatedSubject = new BehaviorSubject<Contact | null>(null);
   public authenticated$ = this.authenticatedSubject.asObservable();
 
-  private _activeContactSubject = new BehaviorSubject<Contact>(new Contact());
+  private _activeContactSubject = new BehaviorSubject<Contact | null>(null);
   public activeContact$ = this._activeContactSubject.asObservable();
 
   constructor(private http: HttpClient) { }
@@ -28,10 +28,6 @@ export class AuthService {
     localStorage.removeItem('tksrtath');
   }
 
-  isAuthenticated(): boolean {
-    return this.authenticatedSubject.value;
-  }
-
   setActiveContact(contact: Contact): void {
     if (contact) {
       console.log('Emitiendo nuevo valor al active contact', contact.username)
@@ -39,31 +35,43 @@ export class AuthService {
     }
   }
 
-  getActiveContact(): Contact {
+  getActiveContact(): Contact | null {
     return this._activeContactSubject.value;
   }
 
-
-  login(user: any) {
+  login(user: UserLogin): Observable<Contact> {
     return this.http.post<Response>('http://localhost:8080/api/auth/anon', user).pipe(
-      tap(resp => {
-        this.setToken(resp.data)
-        this.authenticatedSubject.next(true)
-      })
+      tap(respose => {
+        if (respose?.data) {
+          this.setToken(respose.data)
+        }
+      }),
+      switchMap(() => this.loadUserAuthenticated())
     )
   }
 
-  register(user: any) {
-    return this.http.post('http://localhost:8080/api/auth/register', user);
+  loadUserAuthenticated(): Observable<Contact> {
+    return this.http.get<Response>('http://localhost:8080/api/auth/load/me/user').pipe(
+      switchMap(resp => {
+        const user = resp.data as Contact;
+        this.authenticateUser(user);
+        return of(user);
+      })
+    );
   }
 
-  logout() {
+  updateUser(contact: Contact): void {
+    this.authenticateUser(contact);
+  }
+
+  logout(): void {
     this.deleteToken();
-    this.authenticatedSubject.next(false)
+    this.authenticatedSubject.next(null);
+    this._activeContactSubject.next(null);
   }
-
-  authenticateUser(status: boolean = false): void {
-    this.authenticatedSubject.next(status)
+  
+  authenticateUser(contact: Contact): void {
+    this.authenticatedSubject.next(contact);
   }
 
   hasToken(): boolean {

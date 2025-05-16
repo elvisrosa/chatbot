@@ -1,4 +1,4 @@
-package com.elvis.springboot.chat.app.config;
+package com.elvis.springboot.chat.app.config.ws;
 
 import java.util.List;
 import java.util.Map;
@@ -31,20 +31,14 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler,
             Map<String, Object> attributes) throws Exception {
 
-        log.info("Entro al filtro de websoket");
         if (request instanceof ServletServerHttpRequest servletRequest) {
-            log.info("Entro porque es instancia");
             String token = servletRequest.getServletRequest().getParameter("ss");
-            // String authHeader =
-            // servletRequest.getServletRequest().getHeader("Authorization");
-            log.info(token);
             if (token != null && jwtUtil.validateToken(token)) {
                 String username = jwtUtil.extractUsername(token);
                 User user = userRepository.findByUsername(username).orElse(null);
                 if (user != null) {
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                             user.getUsername(), null, List.of());
-
                     SecurityContextHolder.getContext().setAuthentication(auth);
                     log.info("Usaurio {} autenticado por el filtro de websoclet", username);
                     attributes.put("username", user.getUsername());

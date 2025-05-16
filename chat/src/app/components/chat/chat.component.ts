@@ -1,4 +1,4 @@
-import { AfterViewChecked, AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnInit, Output, QueryList, SimpleChanges, ViewChild, ViewChildren } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnInit, Output, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { Contact, Message } from 'src/app/models/Models';
 import { ChatService } from 'src/app/services/chat.service';
 import { WsService } from 'src/app/services/ws.service';
@@ -11,7 +11,7 @@ import { AuthService } from 'src/app/services/auth.service';
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.css']
 })
-export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
+export class ChatComponent implements OnInit, AfterViewInit {
 
   public message: Message = new Message();
   public messages: Message[] = [];
@@ -27,8 +27,13 @@ export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
 
   // @ViewChild("messagesContainer") private messagesContainer!: ElementRef
   @ViewChild('messagesContainer', { static: false }) messagesContainer!: ElementRef;
+  @ViewChildren("messageElement") private messageElements!: QueryList<ElementRef>
+  @ViewChildren('dateHeader') dateHeaders!: QueryList<ElementRef>;
+  @ViewChild('messageInput') messageInput!: ElementRef<HTMLInputElement>;
 
-
+  private resizeObserver: ResizeObserver | null = null;
+  currentDateDisplay: string = "";
+  private observer: IntersectionObserver | null = null;
   newMessage = ""
   state: String = ''
   isTyping = false;
@@ -44,16 +49,8 @@ export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
    */
 
   groupedMessages: { date: Date; messages: Message[] }[] = []
-  observer: IntersectionObserver | null = null
   isScrolling: boolean = false
   scrollTimeout: any = null
-  currentDateDisplay: string = ""
-  @ViewChildren("messageElement") private messageElements!: QueryList<ElementRef>
-
-
-
-
-
 
   constructor(private services_ws: WsService, private ctS: ChatService, public util: UtilsService, private auth: AuthService) {
     this.subscriptions = new Subscription();
@@ -64,19 +61,13 @@ export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
     this.services_ws.initializeWebSocketConnection();
     this.loadSendMessages();
     this.auth.activeContact$.subscribe(contact => {
-      console.log('Contacto nuevo recibido en chat', contact)
       this.activeContact = contact;
       if (this.activeContact) {
+        setTimeout(() => this.focusInputMessage())
+        this.currentDateDisplay = '';
         this.isPending = contact.status === 'pendig_acceptance';
         this.isTypingF()
         this.loadMessages();
-
-        setTimeout(() => {
-          if (this.messagesContainer && this.messagesContainer.nativeElement) {
-            console.log('Elemento existe', this.messagesContainer)
-            this.setupIntersectionObserver();
-          }
-        });
       }
     });
   }
@@ -89,7 +80,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
         next: (data) => {
           this.messages = data;
           this.limitMessageSendPending = this.messages.filter(msg => msg.status === 'pendig_acceptance').length >= 2;
-          this.groupMessagesByDate()
+          this.groupMessagesByDate();
+          setTimeout(() => {
+            this.setupIntersectionObserver();
+          }, 0);
         }
       }))
     }
@@ -110,22 +104,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
       }))
   }
 
-  ngAfterViewChecked() {
-    // if (this.messagesContainer && this.messagesContainer.nativeElement) {
-    //   this.scrollToBottom();
-    // }
-    // const bottom = this.messagesContainer.nativeElement.scrollHeight === this.messagesContainer.nativeElement.scrollTop + this.messagesContainer.nativeElement.clientHeight;
-    // if (bottom) {
-    //   const unreadMessages = this.messages.filter(msg => msg.status !== 'read');
-    //   console.log(unreadMessages)
-    //   const messageIdsToMarkAsRead = unreadMessages.map(msg => msg.id);
-    //   if (messageIdsToMarkAsRead.length > 0) {
-    //     this.ctS.markMessagesAsRead(messageIdsToMarkAsRead).subscribe(() => {
-    //       unreadMessages.forEach(msg => msg.status = 'read');
-    //     });
-    //   }
-    // }
-  }
 
   isTypingF(): void {
     if (!this.activeContact) return;
@@ -177,42 +155,24 @@ export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
   }
 
   getMessageBlocked(): string {
-    return (this.limitMessageSendPending && this.messages[0].to == this.activeContact?.id) ? `${this.activeContact?.name} aún no acepta tu solicitud de mensaje` : 'Debes aceptar la solicitud para enviar mensajes';
+    return (this.limitMessageSendPending && this.messages[0]?.to == this.activeContact?.id) ? `${this.activeContact?.name} aún no acepta tu solicitud de mensaje` : 'Debes aceptar la solicitud para enviar mensajes';
   }
 
-
-
-
-
-
-
-
-
-
-
-
   onScroll() {
-    console.log('scroll')
     this.isScrolling = true
-
-    // Limpiar el timeout anterior si existe
     if (this.scrollTimeout) {
       clearTimeout(this.scrollTimeout)
     }
-
-    // Ocultar el indicador después de 1.5 segundos sin scroll
     this.scrollTimeout = setTimeout(() => {
       this.isScrolling = false
-    }, 1500)
-
-    // this.setupIntersectionObserver();
+    }, 3000)
   }
 
   ngOnDestroy(): void {
     this.services_ws.disconnect()
     this.subscriptions?.unsubscribe();
     this.typingSubscription?.unsubscribe();
-
+    this.resizeObserver?.disconnect();
 
     if (this.observer) {
       this.observer.disconnect()
@@ -225,58 +185,63 @@ export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
 
 
   setupIntersectionObserver() {
-    if (!this.messageElements || this.messageElements.length === 0) return;
-    if (!this.messagesContainer || !this.messagesContainer.nativeElement) return;
-
 
     if (this.observer) {
       this.observer.disconnect();
     }
 
+    if (!this.messagesContainer || !this.messagesContainer.nativeElement) return;
+
     this.observer = new IntersectionObserver((entries) => {
-      console.log('entries', entries)
       const visibleEntries = entries
-        // .filter(entry => !entry.isIntersecting)
-        .filter(entry => entry.isIntersecting)
-        .sort((a, b) => {
+        .filter((entry) => entry.isIntersecting).sort((a, b) => {
           console.log(a.boundingClientRect.top - b.boundingClientRect.top)
           return a.boundingClientRect.top - b.boundingClientRect.top;
-        }); // ordenar de arriba a abajo
+        });
 
       console.log('visibleEntries', visibleEntries)
       if (visibleEntries.length > 0) {
-        const firstVisible = visibleEntries[0].target as HTMLElement;
-        const dateHeader = this.findClosestDateHeader(firstVisible);
-        console.log('Header')
-        if (dateHeader) {
-          const dateText = dateHeader.innerText;
-          this.currentDateDisplay = dateText;
-          console.log('🗓️ Fecha del primer mensaje visible:', this.currentDateDisplay);
-        }
+        this.updateCurrentDate(visibleEntries[0].target);
       }
     }, {
       root: this.messagesContainer.nativeElement,
-      rootMargin: '0px',
-      threshold: 0.1
+      rootMargin: '-50px 0px 0px 0px',
+      threshold: 0.5
     });
 
-    this.messageElements.forEach((el) => {
-      this.observer?.observe(el.nativeElement);
-    });
-
-    // console.log('termino')
-    // setTimeout(() => {
-    //   this.messageElements.forEach((el) => {
-    //     this.observer?.observe(el.nativeElement);
-    //   });
-    // }, 100);
+    this.updateObserver();
   }
 
-  groupMessagesByDate() {
-    console.log('entro al metodo para ordenar por fecha')
+  private updateObserver() {
+    setTimeout(() => {
+      this.messageElements.forEach(el => {
+        this.observer?.observe(el.nativeElement);
+      });
+    });
+  }
+
+
+  private updateCurrentDate(messageElement: Element) {
+    const messageEl = messageElement as HTMLElement;
+    const messageWrapper = messageEl.closest('.message-wrapper');
+
+    if (messageWrapper) {
+      const dateHeader = messageWrapper.querySelector('.messages-date') as HTMLElement;
+      if (dateHeader) {
+        const dateText = dateHeader.textContent?.trim();
+        if (dateText && dateText !== this.currentDateDisplay) {
+          console.log('Sn fechas distintas')
+          this.currentDateDisplay = dateText;
+        }
+      }
+    }
+  }
+
+
+  groupMessagesByDate(): void {
+
     if (!this.messages || this.messages.length === 0) {
       this.groupedMessages = []
-      console.log('esta vacios')
       return
     }
 
@@ -300,7 +265,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
         }
       })
       .sort((a, b) => a.date.getTime() - b.date.getTime())
-    console.log(this.groupedMessages)
   }
 
   scrollToBottom(): void {
@@ -329,11 +293,26 @@ export class ChatComponent implements OnInit, AfterViewChecked, AfterViewInit {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
   }
 
+  toggleMessageOptions(message: Message): void {
+    if (!message) {
+      return;
+    }
+  }
+
+  private focusInputMessage(): void {
+    if (this.messageInput) {
+      console.log('Entro a marcar el focus')
+      this.messageInput.nativeElement.focus();
+    }
+  }
+
   ngAfterViewInit() {
+    this.setupIntersectionObserver();
     this.messageElements.changes.subscribe(() => {
-      console.log('✅ Los elementos de mensaje han cambiado y están listos en el DOM');
-      this.setupIntersectionObserver();
+      this.updateObserver();
     });
+
+    this.focusInputMessage();
   }
 
 }

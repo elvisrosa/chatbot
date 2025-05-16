@@ -1,0 +1,11 @@
+<div class="dropdown-menu1" [class.show]="showMenu">
+  <div class="dropdown-backdrop" (click)="onBackdropClick()"></div>
+  <div class="dropdown-content">
+    <ng-container *ngFor="let option of options">
+      <div *ngIf="!option.divider" class="dropdown-item" (click)="optionClick(option.action ?? '')">
+        <span>{{ option.label }}</span>
+      </div>
+      <div *ngIf="option.divider" class="dropdown-divider"></div>
+    </ng-container>
+  </div>
+</div>

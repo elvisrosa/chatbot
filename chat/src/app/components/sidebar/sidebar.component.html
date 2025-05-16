@@ -18,28 +18,8 @@
             <i class="material-icons">menu</i>-->
             <i class="material-icons action-icon">group</i>
             <i class="material-icons action-icon" (click)="toggleMenu($event)">more_vert</i>
-
-            <div class="dropdown-menu1" [class.show]="showMenu" #dropdownMenu>
-                <div class="dropdown-backdrop" (click)="closeMenu()"></div>
-                <div class="dropdown-content">
-                    <div class="dropdown-item">
-                        <span>Nuevo grupo</span>
-                    </div>
-                    <div class="dropdown-item">
-                        <span>Mensajes destacados</span>
-                    </div>
-                    <div class="dropdown-item">
-                        <span>Seleccionar chats</span>
-                    </div>
-                    <div class="dropdown-item">
-                        <span>Configuración</span>
-                    </div>
-                    <div class="dropdown-divider"></div>
-                    <div class="dropdown-item" (click)="handleMenuAction('logout')">
-                        <span>Cerrar sesión</span>
-                    </div>
-                </div>
-            </div>
+            <app-message-options [options]="options" [showMenu]="showMenu" (optionClicked)="handleMenuAction($event)"
+                (backdropClicked)="closeMenu()"></app-message-options>
         </div>
     </div>
 
@@ -62,7 +42,7 @@
             [class.active]="contact.id === activeContact.id" [class.pending]="contact.status === 'pendig_acceptance'"
             (click)="selectContact(contact)">
             <div class="contact-avatar">
-                <img [src]="contact.profilePicture" [alt]="contact.name" />
+                <img [src]="contact?.profilePicture || '../../../assets/svgs/user.svg'" [alt]="contact?.name" />
             </div>
             <div class="contact-info">
                 <div class="contact-name-time">

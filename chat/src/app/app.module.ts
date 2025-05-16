@@ -11,6 +11,7 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { LoginComponent } from './components/login/login.component';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { DateformatPipe } from './pipes/dateformat.pipe';
+import { MessageOptionsComponent } from './components/message-options/message-options.component';
 
 @NgModule({
   declarations: [
@@ -18,7 +19,8 @@ import { DateformatPipe } from './pipes/dateformat.pipe';
     ChatComponent,
     SidebarComponent,
     LoginComponent,
-    DateformatPipe
+    DateformatPipe,
+    MessageOptionsComponent
   ],
   imports: [
     CommonModule,

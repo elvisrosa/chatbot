@@ -190,12 +190,12 @@ public class ChatController {
         messagingTemplate.convertAndSendToUser(
                 contactUser.getUsername(),
                 "/queue/contact-updated",
-                true);
+                contact);
 
         messagingTemplate.convertAndSendToUser(
                 currentUser.getUsername(),
                 "/queue/contact-updated",
-                true);
+                contact);
         log.info("Se notifico a los usuarios {}, {}", contactUser.getUsername(), currentUser.getUsername());
 
     }

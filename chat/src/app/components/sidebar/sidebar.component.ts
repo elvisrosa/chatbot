@@ -2,7 +2,7 @@ import { HttpResponse } from '@angular/common/http';
 import { AfterViewInit, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Contact } from 'src/app/models/Models';
+import { Contact, MenuOption } from 'src/app/models/Models';
 import { AuthService } from 'src/app/services/auth.service';
 import { UserService } from 'src/app/services/user.service';
 import { WsService } from 'src/app/services/ws.service';
@@ -20,16 +20,43 @@ export class SidebarComponent implements OnInit, OnDestroy {
   activeContact!: Contact;
   contacts: Contact[] = [];
   searchTerm: string = "";
-  showMenu: Boolean = false
+  showMenu: boolean = false
+  options: MenuOption[] = [
+    {
+      label: 'Nuevo grupo',
+      divider: false,
+      action: ""
+    },
+    {
+      label: 'Agregar contacto',
+      divider: false,
+      action: ""
+    },
+    {
+      label: 'Seleccionar chats',
+      divider: false,
+      action: ""
+    },
+    {
+      label: 'Cerrar sesión',
+      divider: false,
+      action: "logout"
+    },
+    {
+      divider: true,
+    },
+    {
+      label: 'Descarga la App en Google Play',
+      divider: false,
+      action: ""
+    },
+
+  ];
 
 
-  constructor(private userService: UserService, private auth: AuthService, private ws: WsService, private router: Router) {
+  constructor(private userService: UserService, private auth: AuthService,
+    private ws: WsService, private router: Router) {
     this.subscriptions = new Subscription();
-  }
-
-  ngOnDestroy(): void {
-    this.subscriptions?.unsubscribe();
-    document.removeEventListener("click", this.documentClickListener)
   }
 
   ngOnInit(): void {
@@ -55,12 +82,21 @@ export class SidebarComponent implements OnInit, OnDestroy {
       next: (response) => {
         if (response) {
           this.getContact();
-          // this.contacts.push(response);
         }
         console.log("Data received from server", response);
       },
       error: (error: any) => { },
       complete: () => { }
+    }))
+  }
+
+  listeningUpdateContact(): void {
+    this.subscriptions?.add(this.ws.updateContact$.subscribe({
+      next: (resp) => {
+        if (resp) {
+          this.getContact();
+        }
+      }
     }))
   }
 
@@ -97,15 +133,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
     }
   }
 
-
-
-
-
   toggleMenu(event: Event) {
     event.stopPropagation()
-    this.showMenu = !this.showMenu
-
-    // Cerrar el menú cuando se hace clic fuera de él
+    this.showMenu = !this.showMenu;
     if (this.showMenu) {
       setTimeout(() => {
         document.addEventListener("click", this.documentClickListener)
@@ -118,7 +148,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     document.removeEventListener("click", this.documentClickListener)
   }
 
-  handleMenuAction(action: string) {
+  handleMenuAction(action: string): void {
+    console.log(action)
     this.closeMenu()
     switch (action) {
       case "logout":
@@ -127,14 +158,16 @@ export class SidebarComponent implements OnInit, OnDestroy {
       case "settings":
         break;
     }
-    // this.menuAction.emit(action)
-
-    // Aquí puedes manejar acciones específicas si lo necesitas
+    this.showMenu = false;
     console.log(`Acción del menú: ${action}`)
   }
 
-
   documentClickListener = () => {
     this.closeMenu()
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions?.unsubscribe();
+    document.removeEventListener("click", this.documentClickListener)
   }
 }

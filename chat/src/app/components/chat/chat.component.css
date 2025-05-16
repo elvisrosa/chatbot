@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    position: relative;
 }
 
 .chat-header {
@@ -71,12 +72,45 @@
     margin: 10px 0;
     font-size: 12px;
     color: #7d8999;
-    background-color: rgba(225, 245, 254, 0.92);
+    background-color: transparent !important;
     padding: 5px 12px;
     border-radius: 7px;
     width: fit-content;
     align-self: center;
+    border: none;
+    box-shadow: none;
 }
+
+.invisible-date-header {
+    position: absolute;
+    height: 1px;
+    width: 1px;
+    overflow: hidden;
+    clip: rect(1px, 1px, 1px, 1px);
+    /* IE 6/7 fallback */
+    clip-path: inset(50%);
+    /* Modern browsers */
+    white-space: nowrap;
+}
+
+
+.floating-date {
+    position: absolute;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 32px;
+    width: 87px;
+    line-height: 30px;
+    text-align: center;
+    font-size: 18px;
+    background-color: var(--color-primary);
+    color: var(--color-text);
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 10;
+}
+
 
 .message-wrapper {
     display: flex;
@@ -513,6 +547,130 @@
 
 
 
+.message-options {
+  position: absolute;
+  top: 50%;
+  right: -5px;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.3s ease;
+  z-index: 5;
+}
+
+.message-wrapper:hover .message-options {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+
+.message-options-icon:hover {
+    background-color: #f0f0f0;
+}
+
+/* Estilos para el menú de opciones */
+.message-options-menu {
+    position: absolute;
+    top: 30px;
+    right: 0;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    width: 180px;
+    display: none;
+    z-index: 10;
+    overflow: hidden;
+    transform-origin: top right;
+    animation: scaleIn 0.2s ease;
+}
+
+
+.message-options-menu.show {
+    display: block;
+}
+
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.menu-option {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.menu-option:hover {
+    background-color: #f5f5f5;
+}
+
+.menu-option i {
+    margin-right: 10px;
+    font-size: 18px;
+    color: #54656f;
+}
+
+.menu-option span {
+    font-size: 14px;
+    color: #333;
+}
+
+.menu-option.delete i,
+.menu-option.delete span {
+    color: #e53935;
+}
+
+/* Estilos para el modo oscuro */
+:host-context(.dark-mode) .message-options-icon {
+    background-color: rgba(50, 50, 50, 0.9);
+    color: #b0b3b8;
+}
+
+:host-context(.dark-mode) .message-options-icon:hover {
+    background-color: #3a3a3a;
+}
+
+:host-context(.dark-mode) .message-options-menu {
+    background-color: #2a2a2a;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+:host-context(.dark-mode) .menu-option:hover {
+    background-color: #3a3a3a;
+}
+
+:host-context(.dark-mode) .menu-option i {
+    color: #b0b3b8;
+}
+
+:host-context(.dark-mode) .menu-option span {
+    color: #f5f5f5;
+}
+
+:host-context(.dark-mode) .menu-option.delete i,
+:host-context(.dark-mode) .menu-option.delete span {
+    color: #f44336;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -540,7 +698,6 @@
 }
 
 :host-context(.dark-mode) .messages-date {
-    background-color: rgba(30, 45, 60, 0.92);
     color: #b0b3b8;
 }
 

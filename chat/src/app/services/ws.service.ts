@@ -23,10 +23,10 @@ export class WsService {
   private newContactSubject = new BehaviorSubject<Contact | null>(null);
   public newContact$ = this.newContactSubject.asObservable();
   /**Usuario clickado actual */
-
-  private updateContact = new BehaviorSubject<Boolean>(false);
+  private updateContact = new BehaviorSubject<Contact | null>(null);
   public updateContact$ = this.updateContact.asObservable();
   private activeContact: Contact | undefined;
+  /**Usuario rechaza o acepta solicitud de amigo */
 
   constructor(private auth: AuthService) { }
 
@@ -48,6 +48,7 @@ export class WsService {
       this.connected = true;
       this.stompClient.subscribe('/user/queue/messages', (msg) => {
         const message: Message = JSON.parse(msg.body)
+        console.log('Mensaje recibido ', message)
         this.messageSubject.next(message);
       });
 
@@ -63,13 +64,13 @@ export class WsService {
       });
 
       this.stompClient.subscribe('/user/queue/contact-updated', (update) => {
-        const status: Boolean = JSON.parse(update.body);
-        console.log('Data recibida por el update ', status)
-        if (status) {
-          this.newContactSubject.next(new Contact());
-          if (this.activeContact) {
-            this.auth.setActiveContact(this.activeContact);
-          }
+        const contact: Contact = JSON.parse(update.body);
+        console.log('Contacto que se actualizo ', contact)
+        if (contact) {
+          this.updateContact.next(contact);
+          // if (this.activeContact) {
+          //   this.auth.setActiveContact(this.activeContact);
+          // }
         }
       });
 

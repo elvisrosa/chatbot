@@ -25,3 +25,10 @@ export class Contact {
     statusMessage: string = '';
     username: string = '';
 }
+
+export class MenuOption {
+    id?: string = '';
+    label?: string = '';
+    divider?: boolean = false;
+    action?: string = '';
+}

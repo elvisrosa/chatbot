@@ -7,7 +7,7 @@
             <h1>Mi Chat</h1>
         </div>
 
-        <div class="login-form">
+        <form class="login-form" type="submit">
             <div class="form-group">
                 <label for="username">Usuario</label>
                 <div class="input-with-icon">
@@ -43,7 +43,7 @@
                 <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
             </div>
 
-            <button class="login-button" (click)="login()">
+            <button class="login-button" (click)="login()" type="submit">
                 <span *ngIf="!loading">Iniciar sesión</span>
                 <div class="spinner" *ngIf="loading">
                     <div class="bounce1"></div>
@@ -55,7 +55,7 @@
             <div class="error-message login-error" *ngIf="false">
                 Usuario o contraseña incorrectos
             </div>
-        </div>
+        </form>
 
         <div class="login-footer">
             <p>¿No tienes una cuenta? <a href="#">Regístrate</a></p>

@@ -47,7 +47,7 @@
             <div class="contact-info">
                 <div class="contact-name-time">
                     <h3>{{ contact.name }}</h3>
-                    <span class="time">{{ contact.lastSeen | date: 'hh:mm'}}</span>
+                    <span class="time" [class.typing]="typingSet.has(contact.id)">{{ typingSet.has(contact.id) ? 'Escribiendo...' : (contact.lastSeen | date: 'hh:mm')}}</span>
                 </div>
                 <div class="contact-message-status">
                     <p *ngIf="contact.status !== 'pendig_acceptance'">{{ contact.name }}</p>

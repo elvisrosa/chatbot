@@ -17,11 +17,16 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   @Input() autenticated: boolean = false;
   private subscriptions?: Subscription;
-  activeContact!: Contact | null;
-  contacts: Contact[] = [];
-  searchTerm: string = "";
-  showMenu: boolean = false
-  messageNotRead: number = 0;
+  public activeContact!: Contact | null;
+  public contacts: Contact[] = [];
+  public searchTerm: string = "";
+  public showMenu: boolean = false
+  public messageNotRead: number = 0;
+  public isTyping: boolean = false;
+  public status: string = "";
+  public typingTimeout: any;
+  public typingSet = new Set<string>();
+
   options: MenuOption[] = [
     {
       label: 'Nuevo grupo',
@@ -54,7 +59,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   ];
 
-
   constructor(private userService: UserService, private auth: AuthService,
     private ws: WsService) {
     this.subscriptions = new Subscription();
@@ -67,6 +71,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.getContact();
     this.listeningChangeContacts();
     this.listeningNewMessage();
+    this.listeningTyping();
   }
 
   getContact() {
@@ -95,14 +100,16 @@ export class SidebarComponent implements OnInit, OnDestroy {
   listeningNewMessage(): void {
     this.subscriptions?.add(
       this.ws.message$.subscribe((message: Message) => {
+        console.log('Mensaje recibido', message)
         if (!message) return;
-        this.contacts = this.contacts.map(contact => {
-          if (contact.id === message.from) {
-            console.log('Contacto encontrado en la lista ', contact)
-            
-          };
-          return contact;
-        })
+        if (this.activeContact?.id !== message.from) {
+          this.contacts = this.contacts.map(contact => {
+            if (contact.id === message.from) {
+              contact.unreadMessages++;
+            }
+            return contact;
+          })
+        }
       }))
   }
 
@@ -111,6 +118,21 @@ export class SidebarComponent implements OnInit, OnDestroy {
       next: (resp) => {
         if (resp) {
           this.getContact();
+        }
+      }
+    }))
+  }
+
+  listeningTyping(): void {
+    clearTimeout(this.typingTimeout);
+    this.subscriptions?.add(this.ws.typing$.subscribe({
+      next: (message) => {
+        if (!!message && message.type === 'typing' && !!message.to && !!message.from) {
+          const contactId = message.from;
+          this.typingSet.add(contactId);
+          this.typingTimeout = setTimeout(() => {
+            this.typingSet.delete(contactId);
+          }, 3000);
         }
       }
     }))

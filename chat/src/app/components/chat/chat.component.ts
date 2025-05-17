@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnInit, Output, QueryList, ViewChild, ViewChildren } from '@angular/core';
-import { Contact, Message } from 'src/app/models/Models';
+import { Contact, Message, ModelMessage } from 'src/app/models/Models';
 import { ChatService } from 'src/app/services/chat.service';
 import { WsService } from 'src/app/services/ws.service';
 import { Subject, Subscription } from 'rxjs';
@@ -16,7 +16,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
   @Input() isDarkMode = false;
   @Output() sendMessage2 = new EventEmitter<string>();
   public message: Message = new Message();
-  public messages: Message[] = [];
+  public messages: ModelMessage[] = [];
   public messagesPending: Message[] = [];
   public activeContact: Contact | null = null;
   public statusCurrentUser: string = '';
@@ -32,6 +32,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
   private groupedMessages: { date: Date; messages: Message[] }[] = []
   public isScrolling: boolean = false
   private scrollTimeout: any = null
+  private typingTimeout: any;
   @ViewChild('messagesContainer', { static: false }) messagesContainer!: ElementRef;
   @ViewChildren("messageElement") private messageElements!: QueryList<ElementRef>
   @ViewChildren('dateHeader') dateHeaders!: QueryList<ElementRef>;
@@ -50,7 +51,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
         this.activeContact = contact;
         setTimeout(() => this.focusInputMessage())
         this.currentDateDisplay = '';
-        this.isPending = contact.status === 'pendig_acceptance';
+        // this.isPending = contact.status === 'pendig_acceptance';
         this.isTypingF()
         this.loadMessages();
       }
@@ -63,10 +64,11 @@ export class ChatComponent implements OnInit, AfterViewInit {
       const id = this.activeContact?.id;
       this.subscriptions?.add(this.ctS.getMessages(id).subscribe({
         next: (data) => {
-          this.messages = data.data;
-          this.limitMessageSendPending = this.messages.filter(msg => msg.status === 'pendig_acceptance').length >= 2;
-          this.groupMessagesByDate();
+          this.messages = this.groupMessagesByDate(data.data);
+          console.log(this.messages)
+          // this.limitMessageSendPending = this.messages.filter(msg => msg.status === 'pendig_acceptance').length >= 2;
           setTimeout(() => {
+            this.scrollToBottom();
             this.setupIntersectionObserver();
           }, 0);
         }
@@ -77,47 +79,108 @@ export class ChatComponent implements OnInit, AfterViewInit {
   loadSendMessages() {
     this.subscriptions?.add(
       this.services_ws.message$.subscribe((msg: Message) => {
-        console.log('mensaje que estoy recibiendo', msg)
-        const alreadyExists = this.messages.some(m => m.id === msg.id || m.timestamp === msg.timestamp);
+        console.log('mensaje que estoy recibiendo', msg);
+
+        // 1. Buscar si ya existe ese mensaje en algún grupo
+        const alreadyExists = this.messages.some(group =>
+          group.messages?.some(m => m.id === msg.id || m.timestamp === msg.timestamp)
+        );
+
         if (!alreadyExists && (msg.from === this.activeContact?.id || msg.to === this.activeContact?.id)) {
-          this.messages.unshift(msg);
-          this.limitMessageSendPending = this.messages.filter(msg => msg.status === 'pendig_acceptance').length >= 2;
+          // 2. Determinar la fecha del mensaje (solo año-mes-día)
+          const msgDate = new Date(msg.timestamp ?? Date.now());
+          msgDate.setHours(0, 0, 0, 0);
+
+          // 3. Buscar si ya existe un grupo con esa fecha
+          const existingGroup = this.messages.find(group => {
+            const groupDate = new Date(group.date || '');
+            groupDate.setHours(0, 0, 0, 0);
+            return groupDate.getTime() === msgDate.getTime();
+          });
+
+          // 4. Agregar el mensaje al grupo existente o crear uno nuevo
+          if (existingGroup) {
+            existingGroup.messages?.push(msg);
+          } else {
+            this.messages.push({
+              date: msgDate,
+              messages: [msg]
+            });
+            // Ordena por fecha por si se insertan desordenados
+            this.messages.sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+          }
+
+          // 5. Actualizar estados
+          // this.limitMessageSendPending = this.messages
+          //   .flatMap(group => group.messages || [])
+          //   .filter(m => m.status === 'pendig_acceptance').length >= 2;
+
+          console.log('TIene ', this.limitMessageSendPending, 'pendientes')
+          // if (msg.status === 'pendig_acceptance') {
+          //   this.isPending = true;
+          // }
+
+          if (this.isUserAtBottom()) {
+            setTimeout(() => this.scrollToBottom(), 0);
+          }
         }
-        if (!alreadyExists && msg.status === 'pendig_acceptance') {
-          this.isPending = true;
-        }
-      }
-      ))
+      })
+    );
   }
+
 
   isTypingF(): void {
     if (!this.activeContact) return;
+
     const currentContactId = this.activeContact.id;
     const lastSeen = this.activeContact.lastSeen;
+
     this.typingSubscription?.unsubscribe();
+    clearTimeout(this.typingTimeout);
+
     this.typingSubscription = this.services_ws.typing$.subscribe((message: any) => {
-      if (message && message.from && message.from === currentContactId) {
-        const type = message.type;
-        if (type === 'typing') {
+
+      if (!message || !message.from) {
+        this.state = this.util.formatLastSeen(lastSeen)
+        this.isTyping = false;
+        return;
+      };
+
+      const isFromActive = message.from === currentContactId;
+      const type = message.type;
+
+      if (!isFromActive) {
+        this.state = this.util.formatLastSeen(lastSeen)
+        this.isTyping = false;
+        return;
+      }
+      switch (type) {
+        case 'typing':
           this.state = 'Escribiendo...';
           this.isTyping = true;
-          setTimeout(() => {
+          this.typingTimeout = setTimeout(() => {
             this.state = 'En línea';
             this.isTyping = false;
           }, 3000);
-        } else if (type === 'online') {
+          break;
+
+        case 'online':
           this.state = 'En línea';
-        } else {
+          this.isTyping = false;
+          break;
+        default:
           this.state = this.util.formatLastSeen(lastSeen)
-        }
-      } else {
-        this.state = this.util.formatLastSeen(lastSeen)
+          this.isTyping = false;
+
       }
     });
   }
 
   onSendMessage(): void {
     this.message.to = this.activeContact?.id;
+    if (!this.message.content) {
+      return;
+    }
     const newMessage = { ...this.message };
     this.services_ws.sendMessage(newMessage);
     this.message = new Message();
@@ -140,7 +203,8 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
   getMessageBlocked(): string {
-    return (this.limitMessageSendPending && this.messages[0]?.to == this.activeContact?.id) ? `${this.activeContact?.name} aún no acepta tu solicitud de mensaje` : 'Debes aceptar la solicitud para enviar mensajes';
+    return '';
+    // return (this.limitMessageSendPending && this.messages[0]?.messages[0].to == this.activeContact?.id) ? `${this.activeContact?.name} aún no acepta tu solicitud de mensaje` : 'Debes aceptar la solicitud para enviar mensajes';
   }
 
   onScroll() {
@@ -151,6 +215,23 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.scrollTimeout = setTimeout(() => {
       this.isScrolling = false
     }, 3000)
+
+    this.eventScroll();
+  }
+
+  eventScroll(): void {
+    const element = this.messagesContainer.nativeElement;
+    const threshold = 20;
+    const scrollPosition = element.scrollTop + element.clientHeight;
+    const contentHeight = element.scrollHeight;
+    // console.log(scrollPosition, contentHeight)
+    if (contentHeight - scrollPosition <= threshold) {
+      this.markMessagesRead();
+    }
+  }
+
+  markMessagesRead(): void {
+    console.log('Marcar mensajes como leidis')
   }
 
   ngOnDestroy(): void {
@@ -170,7 +251,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.observer = new IntersectionObserver((entries) => {
       const visibleEntries = entries
         .filter((entry) => entry.isIntersecting).sort((a, b) => {
-          console.log(a.boundingClientRect.top - b.boundingClientRect.top)
+          // console.log(a.boundingClientRect.top - b.boundingClientRect.top)
           return a.boundingClientRect.top - b.boundingClientRect.top;
         });
 
@@ -202,22 +283,22 @@ export class ChatComponent implements OnInit, AfterViewInit {
       if (dateHeader) {
         const dateText = dateHeader.textContent?.trim();
         if (dateText && dateText !== this.currentDateDisplay) {
-          console.log('Sn fechas distintas')
+          // console.log('Sn fechas distintas')
           this.currentDateDisplay = dateText;
         }
       }
     }
   }
 
+  groupMessagesByDate(messages: Message[]): ModelMessage[] {
 
-  groupMessagesByDate(): void {
-    if (!this.messages || this.messages.length === 0) {
-      this.groupedMessages = []
-      return
+    if (!messages || messages.length === 0) {
+      this.messages = []
+      return []
     }
 
     const groups: { [key: string]: Message[] } = {}
-    this.messages.forEach((message) => {
+    messages.forEach((message) => {
       const date = message?.timestamp ? new Date(message.timestamp) : new Date()
       const dateKey = this.getDateKey(date)
 
@@ -228,7 +309,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
       groups[dateKey].push(message)
     })
 
-    this.groupedMessages = Object.keys(groups)
+    return Object.keys(groups)
       .map((dateKey) => {
         return {
           date: new Date(dateKey),
@@ -245,6 +326,15 @@ export class ChatComponent implements OnInit, AfterViewInit {
       }
     } catch (err) { }
   }
+
+  isUserAtBottom(): boolean {
+    const el = this.messagesContainer.nativeElement;
+    const threshold = 20;
+    const position = el.scrollTop + el.clientHeight;
+    const height = el.scrollHeight;
+    return height - position <= threshold;
+  }
+
 
   findClosestDateHeader(messageElement: HTMLElement): HTMLElement | null {
     let current = messageElement
@@ -272,7 +362,6 @@ export class ChatComponent implements OnInit, AfterViewInit {
 
   private focusInputMessage(): void {
     if (this.messageInput) {
-      console.log('Entro a marcar el focus')
       this.messageInput.nativeElement.focus();
     }
   }
@@ -282,7 +371,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.messageElements.changes.subscribe(() => {
       this.updateObserver();
     });
-
+    this.scrollToBottom();
     this.focusInputMessage();
   }
 

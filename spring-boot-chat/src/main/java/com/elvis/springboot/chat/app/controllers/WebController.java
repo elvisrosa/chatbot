@@ -83,9 +83,9 @@ public class WebController {
                 .filter(contact -> contact.getUserId().equals(receiverUser.getId()))
                 .findFirst();
         String statusFilter = "";
-        Sort sortByTimestamp = Sort.by(Sort.Direction.DESC, "timestamp");
+        Sort sortByTimestamp = Sort.by(Sort.Direction.ASC, "timestamp");
         int page = 0;
-        int size = 25;
+        int size = 100;
         if (optionalContact.isPresent()) {
             log.info("Contacto", optionalContact.get());
             Contact contact = optionalContact.get();

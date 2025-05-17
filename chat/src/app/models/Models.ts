@@ -38,3 +38,8 @@ export class UserLogin {
     username: string = '';
     password: string = '';
 }
+
+export class ModelMessage {
+    date?: Date;
+    messages?: Message[];
+}

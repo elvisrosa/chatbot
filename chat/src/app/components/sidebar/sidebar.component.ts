@@ -102,7 +102,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.ws.message$.subscribe((message: Message) => {
         console.log('Mensaje recibido', message)
         if (!message) return;
-        if (this.activeContact?.id !== message.from) {
+        // if (this.activeContact?.id !== message.from) {
           this.contacts = this.contacts.map(contact => {
             if (contact.lastMessage) {
               contact.lastMessage.message = message.content.body;
@@ -114,7 +114,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
             }
             return contact;
           })
-        }
+        // }
       }))
   }
 

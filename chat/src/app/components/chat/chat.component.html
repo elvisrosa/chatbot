@@ -32,7 +32,7 @@
             </div>
 
             <div *ngFor="let message of group.messages; trackBy: trackByMessageId" class="message-wrapper"
-                [class.outgoing]="message.to === activeContact?.id" #messageElement>
+                [class.outgoing]="message.to === activeContact?.id" #messageElement [attr.data-message-id]="message.id">
                 <div class="messages-date invisible-date-header" #dateHeader>{{ message.timestamp | dateformat }}</div>
                 <div class="message">
                     <div class="message-options" (click)="toggleMessageOptions(message)">

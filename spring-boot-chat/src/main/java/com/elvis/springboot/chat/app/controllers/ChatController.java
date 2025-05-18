@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 import com.elvis.springboot.chat.app.documents.Contact;
 import com.elvis.springboot.chat.app.documents.Content;
 import com.elvis.springboot.chat.app.documents.Messages;
@@ -42,84 +44,79 @@ public class ChatController {
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload Message message, Principal principal) {
-        if (principal == null) {
+
+        if (principal == null || principal.getName() == null) {
             return;
         }
 
-        log.info("Data del mensaje que llega {}", message);
-        User currentUser = userRepository.findByUsername(principal.getName()).orElse(null);
-        ObjectId currentUserid = currentUser == null ? null : currentUser.getId();
-        ObjectId receiverId = new ObjectId(message.getTo());
-        User receiverUser = userRepository.findById(receiverId).orElse(null);
+        String username = principal.getName();
 
-        boolean alreadyExists = false;
-        boolean isContact = false;
-
-        for (Contact contact : receiverUser.getContacts()) {
-            if (contact.getUserId().equals(currentUserid)) {
-                alreadyExists = true;
-                if ("contact".equals(contact.getStatus())) {
-                    isContact = true;
-                }
-                break;
-            }
+        User senderUser = userRepository.findByUsername(username)
+                .orElseThrow(
+                        () -> new IllegalStateException("Remitente no encontrado con username: " + username));
+        ObjectId receiverId = null;
+        try {
+            receiverId = new ObjectId(message.getTo());
+        } catch (IllegalArgumentException e) {
+            log.error("ID de destinatario inválido: {}", message.getTo());
+            return;
         }
 
-        log.info("Es un contacto ? {} existe ? {}", isContact, alreadyExists);
+        User receiverUser = userRepository.findById(receiverId)
+                .orElseThrow(() -> new IllegalStateException("Destinatario no encontrado"));
 
-        String status = isContact ? "read" : "pendig_acceptance";
+        boolean isContact = receiverUser.getContacts().stream()
+                .anyMatch(contact -> contact.getUserId().equals(senderUser.getId())
+                        && "contact".equals(contact.getStatus()));
+
+        log.info("Es un contacto ? {}", isContact);
+
+        String status = isContact ? "send" : "pending_acceptance";
 
         if (!isContact) {
-            int messagesPendint = messageService.countBySenderIdAndReceiverIdAndStatus(
-                    currentUserid, receiverId, "pendig_acceptance");
-            if (messagesPendint > 2) {
-                messagingTemplate.convertAndSendToUser(
-                        receiverUser.getUsername(),
-                        "/queue/messages",
-                        new MessagesDto(Messages.builder().build()));
+            long pendingMessagesCount = messageService.countBySenderIdAndReceiverIdAndStatus(
+                    senderUser.getId(), receiverId, "pending_acceptance");
+            if (pendingMessagesCount >= 2) {
+                log.warn("Límite de mensajes pendientes alcanzado de {} a {}", username,
+                        receiverUser.getUsername());
+                // messagingTemplate.convertAndSendToUser(username, "/queue/errors",
+                // new Response<>(HttpStatus.TOO_MANY_REQUESTS.value(),
+                // "Demasiadas solicitudes de contacto pendientes a este usuario."));
                 return;
             }
         }
 
-        Content content = Content.builder()
-                .type("text")
-                .body(message.getContent())
-                .mediaUrl("http://ejemplo.com").build();
-        Messages messageDoc = Messages.builder()
-                .receiverId(receiverId)
-                .senderId(currentUserid)
-                .edit(false)
-                .isGroupMessage(false)
-                .status(status)
-                .timestamp(LocalDateTime.now())
-                .content(content).build();
+        Content content = Content.builder().type("text").body(message.getContent()).mediaUrl("http://ejemplo.com")
+                .build();
+        Messages messageDoc = Messages.builder().receiverId(receiverId).senderId(senderUser.getId()).edit(false)
+                .isGroupMessage(false).status(status).timestamp(LocalDateTime.now()).content(content).build();
         messageService.save(messageDoc);
-        log.info("Mensaje de {} para {}", principal.getName(), receiverUser.getUsername());
-        messagingTemplate.convertAndSendToUser(
-                receiverUser.getUsername(), // Destinatario
-                "/queue/messages",
+        log.info("Mensaje de {} para {} (status: {})", username, receiverUser.getUsername(), status);
+
+        messagingTemplate.convertAndSendToUser(receiverUser.getUsername(), "/queue/messages",
                 new MessagesDto(messageDoc));
-        messagingTemplate.convertAndSendToUser(
-                currentUser.getUsername(), // Destinatario
-                "/queue/messages",
+        messagingTemplate.convertAndSendToUser(senderUser.getUsername(), "/queue/messages",
                 new MessagesDto(messageDoc));
 
-        if (!alreadyExists) {
+        boolean alreadyContactRequestExists = receiverUser.getContacts().stream()
+                .anyMatch(contact -> contact.getUserId().equals(senderUser.getId()));
+
+        if (!alreadyContactRequestExists) {
             Contact contactPending = Contact.builder()
-                    .status("pendig_acceptance")
+                    .status("pending_acceptance")
                     .isBlocked(false)
-                    .nickname(currentUser.getName())
-                    .userId(currentUserid)
+                    .nickname(senderUser.getName())
+                    .userId(senderUser.getId())
                     .unreadMessages(1)
                     .build();
             receiverUser.getContacts().add(contactPending);
-            User userCreated = userRepository.save(receiverUser);
-            log.info("User creaddo {}", userCreated);
-            UserDto newUser = new UserDto(currentUser, "pendig_acceptance", contactPending.getUnreadMessages(), null);
-            messagingTemplate.convertAndSendToUser(
-                    receiverUser.getUsername(),
-                    "/queue/new_contact",
-                    newUser);
+            userRepository.save(receiverUser);
+            log.info("Solicitud de contacto pendiente creada de {} para {}", username,
+                    receiverUser.getUsername());
+
+            UserDto newUserDto = new UserDto(senderUser, "pending_acceptance", contactPending.getUnreadMessages(),
+                    null);
+            messagingTemplate.convertAndSendToUser(receiverUser.getUsername(), "/queue/new_contact", newUserDto);
         }
     }
 
@@ -160,20 +157,14 @@ public class ChatController {
     }
 
     @MessageMapping("/me/mark-as-read")
-    public void markMessagesAsRead(@RequestBody List<String> messageIds, Principal principal) {
+    public void markMessagesAsRead(@RequestBody List<String> messageIds, @RequestParam String contactId,
+            Principal principal) {
 
         if (principal == null || principal.getName() == null) {
             return;
         }
         final String username = principal.getName();
-        User currentUser = userRepository.findByUsername(username).orElseGet(() -> {
-            log.warn("Usuario {} no encontrado al intentar marcar mensajes como leídos.", username);
-            return null;
-        });
-
-        if (currentUser == null) {
-            return;
-        }
+        User currentUser = userRepository.findByUsername(username).orElseThrow(()-> new UsernameNotFoundException("User not found"));
 
         List<ObjectId> objectMessageIds = messageIds.stream()
                 .map(id -> {
@@ -185,6 +176,7 @@ public class ChatController {
                     }
                 }).filter(Objects::nonNull)
                 .toList();
+
         if (objectMessageIds.isEmpty()) {
             return;
         }
@@ -193,8 +185,8 @@ public class ChatController {
                 objectMessageIds);
         if (messagesToUpdate.isEmpty()) {
             log.info(
-                    "No se encontraron mensajes elegibles para actualizar para el usuario {} con los IDs proporcionados.",
-                    username);
+                    "No se encontraron mensajes elegibles para actualizar para el usuario {} con los IDs proporcionados. {}",
+                    username, objectMessageIds);
             return;
         }
         log.info("Se encontraron {} mensajes para marcar como leídos para el usuario {}.", messagesToUpdate.size(),

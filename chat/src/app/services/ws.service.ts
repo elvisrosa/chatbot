@@ -63,6 +63,10 @@ export class WsService {
         console.log("Nuevo contacto recibido:", contact);
       });
 
+      this.stompClient.subscribe('/user/queue/message-read', (notification) => {
+        console.log("Los siguientes mensajes han sido leidos:", notification);
+      });
+
       this.stompClient.subscribe('/user/queue/contact-updated', (update) => {
         const contact: Contact = JSON.parse(update.body);
         console.log('Contacto que se actualizo ', contact)
@@ -169,6 +173,13 @@ export class WsService {
     this.stompClient.publish({
       destination: '/app/chat.typing',
       body: JSON.stringify(typingMessage)
+    });
+  }
+
+  markAsRead(idsMessage: string[]) {
+    this.stompClient.publish({
+      destination: '/app/me/mark-as-read',
+      body: JSON.stringify(idsMessage)
     });
   }
 

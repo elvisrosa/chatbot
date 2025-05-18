@@ -16,6 +16,7 @@ import com.elvis.springboot.chat.app.services.MessageService;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.GetMapping;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,9 +65,6 @@ public class WebController {
                     Contact contact = contactMap.get(user.getId());
                     int unreadCount = (contact != null) ? contact.getUnreadMessages() : 0;
                     String status = (contact != null) ? contact.getStatus() : "unknown";
-
-                    // 6. Obtener el último mensaje de forma más eficiente (quizás considerar una
-                    // query específica)
                     List<Messages> lastMessageList = messageService.findMessages(user.getId(), currentUser.getId(), "",
                             0, 1, sort);
                     LastMessage lastMessageDto = lastMessageList.isEmpty() ? null
@@ -81,27 +79,20 @@ public class WebController {
     }
 
     @GetMapping("/me/to")
-    public ResponseEntity<Response> getMessages(@RequestParam String receiverId, Principal principal) {
+    public ResponseEntity<Response> getMessages(@RequestParam String receiverId, Principal principal, @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size) {
 
         String username = principal.getName();
-        User currentUser = userRepository.findByUsername(username).orElse(null);
-        if (currentUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).body(new Response(401, "Unhautorized user"));
-        }
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         ObjectId receiverObjectId = new ObjectId(receiverId);
-        User receiverUser = userRepository.findById(receiverObjectId).orElse(null);
-        if (receiverUser == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).body(new Response(404, "User not found"));
-        }
-        log.info("Buscando mensajes entre el usaurio {} y el usuario destino {}", username, receiverUser.getUsername());
-
+        User receiverUser = userRepository.findById(receiverObjectId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         Optional<Contact> optionalContact = currentUser.getContacts().stream()
                 .filter(contact -> contact.getUserId().equals(receiverUser.getId()))
                 .findFirst();
         String statusFilter = "";
         Sort sortByTimestamp = Sort.by(Sort.Direction.ASC, "timestamp");
-        int page = 0;
-        int size = 100;
         if (optionalContact.isPresent()) {
             log.info("Contacto", optionalContact.get());
             Contact contact = optionalContact.get();
@@ -117,7 +108,8 @@ public class WebController {
                 .map(MessagesDto::new)
                 .toList();
 
-        return ResponseEntity.ok(new Response(200, messages));
+        return ResponseEntity.ok(new Response(HttpStatus.OK.value(), messages));
     }
+
 
 }

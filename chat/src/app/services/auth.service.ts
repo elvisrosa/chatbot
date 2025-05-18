@@ -69,9 +69,13 @@ export class AuthService {
     this.authenticatedSubject.next(null);
     this._activeContactSubject.next(null);
   }
-  
+
   authenticateUser(contact: Contact): void {
     this.authenticatedSubject.next(contact);
+  }
+
+  get userAutenticated() {
+    return this.authenticatedSubject.value;
   }
 
   hasToken(): boolean {

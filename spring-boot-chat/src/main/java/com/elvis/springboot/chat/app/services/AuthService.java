@@ -58,7 +58,7 @@ public class AuthService {
         if (user.isEmpty()) {
             return new Response(HttpStatus.NOT_FOUND.value(), "User not found");
         }
-        UserDto userResponse = new UserDto(user.get(), null, 0);
+        UserDto userResponse = new UserDto(user.get(), null, 0, null);
         return new Response(HttpStatus.OK.value(), "User", userResponse);
 
     }

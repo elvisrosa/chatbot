@@ -4,22 +4,19 @@ import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import com.elvis.springboot.chat.app.documents.Contact;
 import com.elvis.springboot.chat.app.documents.Content;
 import com.elvis.springboot.chat.app.documents.Messages;
@@ -29,6 +26,7 @@ import com.elvis.springboot.chat.app.messagues.requests.Message;
 import com.elvis.springboot.chat.app.messagues.response.MessagesDto;
 import com.elvis.springboot.chat.app.messagues.response.UserDto;
 import com.elvis.springboot.chat.app.repositories.UserRepository;
+import com.elvis.springboot.chat.app.services.ContactService;
 import com.elvis.springboot.chat.app.services.MessageService;
 
 @Slf4j
@@ -40,6 +38,7 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final MessageService messageService;
     private final UserRepository userRepository;
+    private final ContactService contactService;
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload Message message, Principal principal) {
@@ -68,7 +67,7 @@ public class ChatController {
 
         log.info("Es un contacto ? {} existe ? {}", isContact, alreadyExists);
 
-        String status = isContact ? "send" : "pendig_acceptance";
+        String status = isContact ? "read" : "pendig_acceptance";
 
         if (!isContact) {
             int messagesPendint = messageService.countBySenderIdAndReceiverIdAndStatus(
@@ -116,7 +115,7 @@ public class ChatController {
             receiverUser.getContacts().add(contactPending);
             User userCreated = userRepository.save(receiverUser);
             log.info("User creaddo {}", userCreated);
-            UserDto newUser = new UserDto(currentUser, "pendig_acceptance", contactPending.getUnreadMessages());
+            UserDto newUser = new UserDto(currentUser, "pendig_acceptance", contactPending.getUnreadMessages(), null);
             messagingTemplate.convertAndSendToUser(
                     receiverUser.getUsername(),
                     "/queue/new_contact",
@@ -139,84 +138,103 @@ public class ChatController {
     }
 
     @MessageMapping("/contact.update")
-    public void updateContactStatuts(@Payload ContactUpdateDto contact, Principal principal) {
+    public void updateContactStatus(@Payload ContactUpdateDto contactUpdateDto, Principal principal) {
+        if (principal == null || principal.getName() == null) {
+            return;
+        }
 
-        log.info("Entro al metodo");
-        User currentUser = userRepository.findByUsername(principal.getName()).orElse(null);
+        try {
+            contactService.processContactUpdate(principal.getName(), contactUpdateDto);
+
+            // Las notificaciones post-actualización podrían hacerse aquí si son de
+            // "presentación"
+            // o dentro del servicio si son parte de la lógica de negocio central
+            // messagingTemplate.convertAndSendToUser(..., contactUpdateDto);
+            // messagingTemplate.convertAndSendToUser(..., contactUpdateDto);
+
+        } catch (UsernameNotFoundException e) {
+            log.warn("Fallo en la actualización de contacto: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error inesperado al actualizar contacto: {}", e.getMessage(), e);
+        }
+    }
+
+    @MessageMapping("/me/mark-as-read")
+    public void markMessagesAsRead(@RequestBody List<String> messageIds, Principal principal) {
+
+        if (principal == null || principal.getName() == null) {
+            return;
+        }
+        final String username = principal.getName();
+        User currentUser = userRepository.findByUsername(username).orElseGet(() -> {
+            log.warn("Usuario {} no encontrado al intentar marcar mensajes como leídos.", username);
+            return null;
+        });
+
         if (currentUser == null) {
-            log.info("No existe el usuario");
             return;
         }
 
-        User contactUser = userRepository.findById(new ObjectId(contact.getContactId())).orElse(null);
-        if (contactUser == null) {
-            log.info("No existe el usuario");
+        List<ObjectId> objectMessageIds = messageIds.stream()
+                .map(id -> {
+                    try {
+                        return new ObjectId(id);
+                    } catch (Exception e) {
+                        log.warn("ID de mensaje inválido: {}. Será ignorado.", id);
+                        return null;
+                    }
+                }).filter(Objects::nonNull)
+                .toList();
+        if (objectMessageIds.isEmpty()) {
             return;
         }
 
-        Contact contactToUpdate = currentUser.getContacts().stream()
-                .filter(c -> c.getUserId().toHexString().equals(contact.getContactId()))
+        List<Messages> messagesToUpdate = messageService.findMessagesBetweenUsersWithIds(currentUser.getId(),
+                objectMessageIds);
+        if (messagesToUpdate.isEmpty()) {
+            log.info(
+                    "No se encontraron mensajes elegibles para actualizar para el usuario {} con los IDs proporcionados.",
+                    username);
+            return;
+        }
+        log.info("Se encontraron {} mensajes para marcar como leídos para el usuario {}.", messagesToUpdate.size(),
+                username);
+
+        messagesToUpdate.forEach(message -> message.setStatus("read"));
+        List<Messages> updatedMessages = messageService.saveAll(messagesToUpdate);
+        if (updatedMessages.isEmpty()) {
+            log.warn("Ningún mensaje fue guardado después de intentar marcar como leídos para el usuario {}.",
+                    username);
+            return;
+        }
+
+        List<ObjectId> messagesIdRead = updatedMessages.stream()
+                .map(Messages::getId)
+                .toList();
+
+        String receiverUsername = updatedMessages.stream()
+                .map(Messages::getReceiverId)
                 .findFirst()
-                .orElse(null);
-
-        if (contactToUpdate == null) {
-            log.info("No existe el contacto");
-            return;
-        }
-
-        if (contact.getStatus().equalsIgnoreCase("contact")) {
-            contactToUpdate.setStatus("contact");
-        } else if (contact.getStatus().equalsIgnoreCase("reject")) {
-            currentUser.getContacts().remove(contactToUpdate);
-        } else {
-            log.info("Estado  no valido {}", contact.getStatus());
-            return;
-        }
-
-        if (userRepository.save(currentUser) == null) {
-            return;
-        }
-
-        Sort sortByTimestamp = Sort.by(Sort.Direction.DESC, "timestamp");
-
-        List<Messages> msgs = this.messageService.findMessages(currentUser.getId(), contactUser.getId(),
-                "pendig_acceptance", 0, 10, sortByTimestamp);
-        msgs.forEach(msg -> msg.setStatus("send"));
-        log.info("Contacto de usuario actualizado ");
-        messageService.saveAll(msgs);
-        messagingTemplate.convertAndSendToUser(
-                contactUser.getUsername(),
-                "/queue/contact-updated",
-                contact);
+                .flatMap(userRepository::findById)
+                .map(User::getUsername)
+                .orElseGet(() -> {
+                    log.error(
+                            "No se pudo determinar el nombre de usuario del receptor para los mensajes leídos. Esto es inesperado.");
+                    return null;
+                });
 
         messagingTemplate.convertAndSendToUser(
-                currentUser.getUsername(),
-                "/queue/contact-updated",
-                contact);
-        log.info("Se notifico a los usuarios {}, {}", contactUser.getUsername(), currentUser.getUsername());
+                username,
+                "/queue/message-read",
+                messagesIdRead);
+
+        if (receiverUsername != null && !receiverUsername.equals(username)) {
+            messagingTemplate.convertAndSendToUser(
+                    receiverUsername,
+                    "/queue/message-read",
+                    messagesIdRead);
+        }
 
     }
 
-    @PutMapping("/me/mark-as-read")
-    public ResponseEntity<?> markMessagesAsRead(@RequestBody List<String> messageIds, Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
-        }
-
-        User user = userRepository.findByUsername(principal.getName()).orElse(null);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-        List<ObjectId> messageIdsList = messageIds.stream().map(ObjectId::new).toList();
-        List<Messages> messagesToUpdate = messageService.findMessagesBetweenUsersWithIds(user.getId(),
-                messageIdsList);
-        log.info("Resultado {}", messagesToUpdate.size());
-        for (Messages message : messagesToUpdate) {
-            message.setStatus("read");
-        }
-
-        messageService.saveAll(messagesToUpdate);
-
-        return ResponseEntity.ok("Messages marked as read");
-    }
 }

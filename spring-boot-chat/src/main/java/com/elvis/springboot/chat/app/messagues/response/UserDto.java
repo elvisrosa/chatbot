@@ -20,8 +20,9 @@ public class UserDto {
     private LocalDateTime lastSeen;
     private String status;
     private int unreadMessages;
+    private LastMessage lastMessage;
 
-    public UserDto(User user, String status, int unreadMessages) {
+    public UserDto(User user, String status, int unreadMessages, LastMessage lastMessage) {
         this.id = user.getId().toHexString();
         this.username = user.getUsername();
         this.name = user.getName();
@@ -32,6 +33,16 @@ public class UserDto {
         this.lastSeen = user.getLastSeen();
         this.status = status;
         this.unreadMessages = unreadMessages;
+        this.lastMessage = lastMessage;
+
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LastMessage {
+        private String message;
+        private LocalDateTime date;
+        private String status;
+    }
 }

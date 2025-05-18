@@ -14,17 +14,24 @@ export class Response {
     data: any;
 }
 
-export class Contact {
-    id: string = '';
-    lastSeen: string = '';
-    name: string = '';
-    online: boolean = false;
-    phone: string = '';
-    profilePicture: string = '';
+export interface Contact {
+    id: string;
+    lastSeen: string;
+    name: string;
+    online: boolean;
+    phone: string;
+    profilePicture: string;
     status?: "pendig_acceptance" | "reject" | "contact";
-    statusMessage: string = '';
-    username: string = '';
-    unreadMessages: number = 0;
+    statusMessage: string;
+    username: string;
+    unreadMessages: number;
+    lastMessage?: LastMessage;
+}
+
+export class LastMessage {
+    message?: string;
+    date?: Date;
+    status?: string;
 }
 
 export class MenuOption {

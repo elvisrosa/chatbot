@@ -36,6 +36,8 @@ export class UtilsService {
         return "done_all"
       case "read":
         return "done_all"
+      case "done_all":
+        return "done_all"
       case "pendig_acceptance":
         return "check"
       default:

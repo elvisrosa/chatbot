@@ -1,7 +1,7 @@
 import { HttpResponse } from '@angular/common/http';
 import { AfterViewInit, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { concat, Subscription } from 'rxjs';
 import { Contact, MenuOption, Message } from 'src/app/models/Models';
 import { AuthService } from 'src/app/services/auth.service';
 import { UserService } from 'src/app/services/user.service';
@@ -104,6 +104,11 @@ export class SidebarComponent implements OnInit, OnDestroy {
         if (!message) return;
         if (this.activeContact?.id !== message.from) {
           this.contacts = this.contacts.map(contact => {
+            if (contact.lastMessage) {
+              contact.lastMessage.message = message.content.body;
+              contact.lastMessage.status = message.status;
+              contact.lastMessage.date = message.timestamp;
+            }
             if (contact.id === message.from) {
               contact.unreadMessages++;
             }

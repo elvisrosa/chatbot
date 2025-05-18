@@ -319,6 +319,11 @@
     animation: pulse 1.5s infinite;
 }
 
+.status-icon {
+    font-size: 14px;
+    margin-left: 4px;
+    color: #5b68f2;
+}
 @keyframes pulse {
     0% {
         opacity: 1;

@@ -36,29 +36,10 @@
                 <div class="messages-date invisible-date-header" #dateHeader>{{ message.timestamp | dateformat }}</div>
                 <div class="message">
                     <div class="message-options" (click)="toggleMessageOptions(message)">
-                        <i class="material-icons message-options-icon">expand_more</i>
-                        <div class="message-options-menu" [class.show]="">
-                            <div class="menu-option">
-                                <i class="material-icons">reply</i>
-                                <span>Responder</span>
-                            </div>
-                            <div class="menu-option">
-                                <i class="material-icons">forward</i>
-                                <span>Reenviar</span>
-                            </div>
-                            <div class="menu-option">
-                                <i class="material-icons">star</i>
-                                <span>Destacar</span>
-                            </div>
-                            <div class="menu-option">
-                                <i class="material-icons">content_copy</i>
-                                <span>Copiar</span>
-                            </div>
-                            <div class="menu-option delete">
-                                <i class="material-icons">delete</i>
-                                <span>Eliminar</span>
-                            </div>
-                        </div>
+                        <i class="material-icons message-options-icon" (click)="toggleMenu($event)">expand_more</i>
+                        <app-message-options [options]="options" [showMenu]="showMenu"
+                            (optionClicked)="handleMenuAction($event)"
+                            (backdropClicked)="closeMenu()"></app-message-options>
                     </div>
                     <div class="message-content">
                         {{ message.content?.body }}
@@ -66,7 +47,8 @@
 
                     <div class="message-meta">
                         <span class="message-time">{{ message.timestamp | date: 'hh:mm a' }}</span>
-                        <i class="material-icons status-icon">
+                        <i class="material-icons status-icon"
+                            [ngStyle]="{color: message.status === 'sent' ? 'gray' : '#5b68f2'}">
                             {{ util.getStatusIcon(message.status || '') }}
                         </i>
                     </div>
@@ -75,38 +57,40 @@
         </ng-container>
     </div>
 
-    <!--<div *ngIf="false" class="messages-container pending-chat">
-        <ng-container *ngFor="let group of messages">
-            <div class="messages-date-header date-badge" #dateHeader>
-                {{ group.date | dateformat | uppercase }}
-            </div>
-            <div *ngFor="let message of group.messages; trackBy: trackByMessageId" class="message-wrapper"
-                [class.outgoing]="message.to === activeContact?.id" #messageElement>
-                <div class="messages-date invisible-date-header" #dateHeader>{{ message.timestamp | dateformat }}</div>
-                <div class="message pending-message">
-                    <div class="message-content">{{ message.content.body }}</div>
-                    <div class="message-meta">
-                        <span class="message-time">{{ message.timestamp | date: 'hh:mm a'}}</span>
-                    </div>
-                </div>
-            </div>
-        </ng-container>
-        <div class="pending-banner">
-            <i class="material-icons">person_add</i>
-            <span>{{ activeContact?.name }} te ha enviado una solicitud de contacto</span>
+    <!--<div *ngIf=" false" class="messages-container pending-chat">
+                            <ng-container *ngFor="let group of messages">
+                                <div class="messages-date-header date-badge" #dateHeader>
+                                    {{ group.date | dateformat | uppercase }}
+                                </div>
+                                <div *ngFor="let message of group.messages; trackBy: trackByMessageId"
+                                    class="message-wrapper" [class.outgoing]="message.to === activeContact?.id"
+                                    #messageElement>
+                                    <div class="messages-date invisible-date-header" #dateHeader>{{ message.timestamp |
+                                        dateformat }}</div>
+                                    <div class="message pending-message">
+                                        <div class="message-content">{{ message.content.body }}</div>
+                                        <div class="message-meta">
+                                            <span class="message-time">{{ message.timestamp | date: 'hh:mm a'}}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ng-container>
+                            <div class="pending-banner">
+                                <i class="material-icons">person_add</i>
+                                <span>{{ activeContact?.name }} te ha enviado una solicitud de contacto</span>
 
-            <div class="pending-actions-compact">
-                <button class="reject-btn-compact" (click)="changeStatus('reject')">
-                    <i class="material-icons">close</i>
-                    Rechazar
-                </button>
-                <button class="accept-btn-compact" (click)="changeStatus('contact')">
-                    <i class="material-icons">check</i>
-                    Aceptar
-                </button>
-            </div>
-        </div>
-    </div>-->
+                                <div class="pending-actions-compact">
+                                    <button class="reject-btn-compact" (click)="changeStatus('reject')">
+                                        <i class="material-icons">close</i>
+                                        Rechazar
+                                    </button>
+                                    <button class="accept-btn-compact" (click)="changeStatus('contact')">
+                                        <i class="material-icons">check</i>
+                                        Aceptar
+                                    </button>
+                                </div>
+                            </div>
+                    </div>-->
 
     <div class="chat-input-area" [class.disabled]="isPending">
         <div class="input-actions">

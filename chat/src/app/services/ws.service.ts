@@ -13,7 +13,7 @@ export class WsService {
   private stompClient!: Client;
   private connected: boolean = false;
   /**Observables para mensajes */
-  private messageSubject = new Subject<Message>();
+  public messageSubject = new Subject<Message>();
   public message$ = this.messageSubject.asObservable();
   /**Observables para escrucha de escibir */
   private typingSubject = new Subject<void>();
@@ -27,6 +27,10 @@ export class WsService {
   public updateContact$ = this.updateContact.asObservable();
   private activeContact: Contact | undefined;
   /**Usuario rechaza o acepta solicitud de amigo */
+  /** Observables para marcar mensajes como leidos */
+  private markAsReadSubject = new BehaviorSubject<string[] | null>(null);
+  public notificationMarkread$ = this.markAsReadSubject.asObservable();
+
 
   constructor(private auth: AuthService) { }
 
@@ -64,7 +68,8 @@ export class WsService {
       });
 
       this.stompClient.subscribe('/user/queue/message-read', (notification) => {
-        console.log("Los siguientes mensajes han sido leidos:", notification);
+        const messageIdsRead: string[] = JSON.parse(notification.body);
+        this.markAsReadSubject.next(messageIdsRead);
       });
 
       this.stompClient.subscribe('/user/queue/contact-updated', (update) => {
@@ -72,9 +77,6 @@ export class WsService {
         console.log('Contacto que se actualizo ', contact)
         if (contact) {
           this.updateContact.next(contact);
-          // if (this.activeContact) {
-          //   this.auth.setActiveContact(this.activeContact);
-          // }
         }
       });
 
@@ -158,8 +160,6 @@ export class WsService {
         });
       });
   }
-
-
 
   sendTypingNotification(activeContact: Contact, type: string) {
     const typingMessage = {

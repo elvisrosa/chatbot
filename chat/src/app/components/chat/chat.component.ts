@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ElementRef, Input, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
-import { Contact, Message, ModelMessage } from 'src/app/models/Models';
+import { Contact, MenuOption, Message, ModelMessage } from 'src/app/models/Models';
 import { ChatService } from 'src/app/services/chat.service';
 import { WsService } from 'src/app/services/ws.service';
 import { BehaviorSubject, debounceTime, Subject, Subscription, takeUntil } from 'rxjs';
@@ -9,7 +9,7 @@ import { AuthService } from 'src/app/services/auth.service';
 @Component({
   selector: 'app-chat',
   templateUrl: './chat.component.html',
-  styleUrls: ['./chat.component.css']
+  styleUrls: ['./chat.component.css'],
 })
 export class ChatComponent implements OnInit, AfterViewInit {
 
@@ -29,20 +29,54 @@ export class ChatComponent implements OnInit, AfterViewInit {
   public isScrolling: boolean = false
   private scrollTimeout: any = null
   private typingTimeout: any;
-  private unreadMessageIds: string[] = [];
-
+  // private unreadMessageIds: string[] = [];
   private messagesBeingRead: Set<string> = new Set();
   private readObserver: IntersectionObserver | null = null;
   private readonly readDebounceTime = 500;
   private readSubject = new BehaviorSubject<string[]>([]);
   private unsubscribe$ = new Subject<void>();
-
   private userAutenticated: Contact | null = null;
+  /** ;Menu options */
+  showMenu: boolean = false;
 
   @ViewChild('messagesContainer', { static: false }) messagesContainer!: ElementRef;
   @ViewChildren("messageElement") private messageElements!: QueryList<ElementRef>
   @ViewChildren('dateHeader') dateHeaders!: QueryList<ElementRef>;
   @ViewChild('messageInput') messageInput!: ElementRef<HTMLInputElement>;
+
+  options: MenuOption[] = [
+    {
+      label: 'Responde',
+      divider: false,
+      action: ""
+    },
+    {
+      label: 'Reaccionar',
+      divider: false,
+      action: ""
+    },
+    {
+      label: 'Reenviar',
+      divider: false,
+      action: ""
+    },
+    {
+      label: 'Fijar',
+      divider: false,
+      action: ""
+    },
+    {
+      label: 'Reportar',
+      divider: false,
+      action: ""
+    },
+    {
+      label: 'Eliminar',
+      divider: false,
+      action: "eliminar"
+    },
+
+  ];
 
   constructor(private services_ws: WsService, private ctS: ChatService, public util: UtilsService, private auth: AuthService) {
     this.subscriptions = new Subscription();
@@ -62,20 +96,12 @@ export class ChatComponent implements OnInit, AfterViewInit {
         this.loadMessages();
       }
     });
-
     /** Funcionalidad para escuchar cuando lee un mensaje */
-    this.readSubject.pipe(
-      debounceTime(this.readDebounceTime),
-      takeUntil(this.unsubscribe$)
-    ).subscribe(ids => {
-      if (ids.length > 0) {
-        this.markMessagesRead();
-      }
-      this.messagesBeingRead.clear();
-    });
+    this.listeningMarkMessageRead();
+    this.listeningMessageRead();
   }
 
-  loadMessages() {
+  private loadMessages() {
     if (this.activeContact?.id) {
       this.messages = [];
       const id = this.activeContact?.id;
@@ -85,7 +111,6 @@ export class ChatComponent implements OnInit, AfterViewInit {
           setTimeout(() => {
             this.scrollToBottom();
             this.setupIntersectionObserver();
-            /**Iniciar observador de mensaje leido */
             this.setupReadObserver();
           }, 0);
         }
@@ -93,7 +118,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     }
   }
 
-  loadSendMessages() {
+  private loadSendMessages() {
     this.subscriptions?.add(
       this.services_ws.message$.subscribe((msg: Message) => {
         console.log('mensaje que estoy recibiendo', msg);
@@ -145,8 +170,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     );
   }
 
-
-  isTypingF(): void {
+  private isTypingF(): void {
     if (!this.activeContact) return;
 
     const currentContactId = this.activeContact.id;
@@ -203,23 +227,23 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.message = new Message();
   }
 
-  changeStatus(status: string): void {
+  private changeStatus(status: string): void {
     if (this.activeContact) {
       this.services_ws.setupUpdateContactNotifier(this.activeContact, status)
     }
   }
 
-  trackByMessageId(index: number, message: any): string {
-    return message.id;
+  trackByMessageId(index: number, message: Message): string {
+    return message.id ?? '';
   }
 
-  onTyping(): void {
+  public onTyping(): void {
     if (this.activeContact) {
       this.services_ws.notifyTyping(this.activeContact);
     }
   }
 
-  getMessageBlocked(): string {
+  public getMessageBlocked(): string {
     return '';
     // return (this.limitMessageSendPending && this.messages[0]?.messages[0].to == this.activeContact?.id) ? `${this.activeContact?.name} aún no acepta tu solicitud de mensaje` : 'Debes aceptar la solicitud para enviar mensajes';
   }
@@ -232,11 +256,9 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.scrollTimeout = setTimeout(() => {
       this.isScrolling = false
     }, 3000)
-
-    // this.eventScroll();
   }
 
-  eventScroll(): void {
+  private eventScroll(): void {
     const element = this.messagesContainer.nativeElement;
     const threshold = 10;
     const scrollPosition = element.scrollTop + element.clientHeight;
@@ -247,35 +269,27 @@ export class ChatComponent implements OnInit, AfterViewInit {
     }
   }
 
-  markMessagesRead(): void {
-    if (this.unreadMessageIds.length > 0) {
-      console.log('Marcar mensajes como leídos', this.unreadMessageIds)
-      this.markMessagesAsReadOnBackend([...this.unreadMessageIds]);
-      this.unreadMessageIds = [];
-    }
+  private listeningMarkMessageRead(): void {
+    this.readSubject.pipe(
+      debounceTime(this.readDebounceTime),
+      takeUntil(this.unsubscribe$)
+    ).subscribe(ids => {
+      if (ids.length > 0) {
+        console.log('Los siguiente mensajes se van a marcar como leidos', ids)
+        this.markMessagesAsReadOnBackend(ids);
+      }
+      this.messagesBeingRead.clear();
+    });
   }
 
-  markMessagesAsReadOnBackend(messageIds: string[]): void {
+  private markMessagesAsReadOnBackend(messageIds: string[]): void {
     if (this.activeContact?.id && messageIds.length > 0) {
-      this.ctS.markMessagesAsRead(messageIds).pipe(takeUntil(this.unsubscribe$)).subscribe({
-        next: () => {
-          console.log('Mensajes marcados como leidos')
-          this.messages.forEach(group => {
-            if (group.messages) {
-              group.messages.forEach(msg => {
-                if (msg.id && messageIds.includes(msg.id)) {
-                  msg.status = 'read';
-                }
-              });
-            }
-          })
-        },
-        error: () => console.log
-      })
+      this.services_ws.markAsRead(messageIds);
+      // this.unreadMessageIds = [];
     }
   }
 
-  setupIntersectionObserver() {
+  private setupIntersectionObserver() {
 
     if (this.dateObserver) this.dateObserver.disconnect();
     if (!this.messagesContainer || !this.messagesContainer.nativeElement) return;
@@ -283,7 +297,6 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.dateObserver = new IntersectionObserver((entries) => {
       const visibleEntries = entries
         .filter((entry) => entry.isIntersecting).sort((a, b) => {
-          // console.log(a.boundingClientRect.top - b.boundingClientRect.top)
           return a.boundingClientRect.top - b.boundingClientRect.top;
         });
 
@@ -299,12 +312,9 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.updateObserver();
   }
 
-  setupReadObserver() {
+  private setupReadObserver() {
 
-    if (this.readObserver) {
-      this.readObserver.disconnect();
-    }
-
+    if (this.readObserver) this.readObserver.disconnect();
     if (!this.messagesContainer || !this.messagesContainer.nativeElement) return;
 
     console.log('entro al metodo para leer que mensajes son leidos')
@@ -312,15 +322,13 @@ export class ChatComponent implements OnInit, AfterViewInit {
       entries.forEach((entry) => {
         if (entry.isIntersecting && entry.target.classList.contains('message-wrapper')) {
           const messageId = entry.target.getAttribute('data-message-id');
-          const messageElement = entry.target as HTMLElement;
+          // const messageElement = entry.target as HTMLElement;
           if (messageId) {
             const message = this.findMessageInGroups(messageId);
-            console.log(message)
             if (message && message.from !== this.userAutenticated?.id && message.status != 'read' && !this.messagesBeingRead.has(messageId)) {
+              console.log('Se agrego el sigueinte id de mensaje a la lista, ', messageId)
               this.messagesBeingRead.add(messageId);
               this.readSubject.next([...this.messagesBeingRead]);
-              const ids = [...this.messagesBeingRead];
-              console.table(ids)
             }
           }
         }
@@ -356,7 +364,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     }
   }
 
-  groupMessagesByDate(messages: Message[]): ModelMessage[] {
+  private groupMessagesByDate(messages: Message[]): ModelMessage[] {
 
     if (!messages || messages.length === 0) {
       this.messages = []
@@ -385,7 +393,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
       .sort((a, b) => a.date.getTime() - b.date.getTime())
   }
 
-  scrollToBottom(): void {
+  private scrollToBottom(): void {
     try {
       if (this.messagesContainer) {
         this.messagesContainer.nativeElement.scrollTop = this.messagesContainer.nativeElement.scrollHeight
@@ -393,7 +401,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     } catch (err) { }
   }
 
-  isUserAtBottom(): boolean {
+  private isUserAtBottom(): boolean {
     const el = this.messagesContainer.nativeElement;
     const threshold = 20;
     const position = el.scrollTop + el.clientHeight;
@@ -401,8 +409,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     return height - position <= threshold;
   }
 
-
-  findClosestDateHeader(messageElement: HTMLElement): HTMLElement | null {
+  private findClosestDateHeader(messageElement: HTMLElement): HTMLElement | null {
     let current = messageElement
 
     while (current && current.previousElementSibling) {
@@ -420,7 +427,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
   }
 
-  toggleMessageOptions(message: Message): void {
+  public toggleMessageOptions(message: Message): void {
     if (!message) {
       return;
     }
@@ -445,12 +452,89 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
   private updateReadObserver() {
-    console.log('entro al metodo')
     setTimeout(() => {
       this.messageElements.forEach((el) => {
         this.readObserver?.observe(el.nativeElement);
       });
     });
+  }
+
+  private listeningMessageRead() {
+    this.services_ws.notificationMarkread$.subscribe({
+      next: (ids) => {
+        if (ids && ids?.length > 0) {
+          this.updateMessageRead(ids);
+          /** Notifico al sidebar que el mensaje fue leído */
+          const lastId = ids[ids.length - 1];
+          const msg = this.findMessageInGroups(lastId);
+          if (msg) {
+            this.services_ws.messageSubject.next(msg);
+          }
+        }
+      }
+    })
+  }
+
+  private updateMessageRead(ids: string[]): void {
+    ids.forEach(id => {
+      for (const modelMessage of this.messages) {
+        if (modelMessage.messages) {
+          const messageToUpdateIndex = modelMessage.messages.findIndex(message => message.id === id);
+          if (messageToUpdateIndex !== -1) {
+            // Actualizamos directamente el objeto en el array
+            modelMessage.messages[messageToUpdateIndex] = {
+              ...modelMessage.messages[messageToUpdateIndex],
+              status: 'read'
+            };
+            // Marcamos el grupo como "tocado" para la detección de cambios
+            this.markForCheck(modelMessage);
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  private markForCheck(modelMessage: ModelMessage): void {
+    const index = this.messages.indexOf(modelMessage);
+    if (index > -1) {
+      this.messages = [...this.messages];
+    }
+  }
+
+  documentClickListener = () => {
+    this.closeMenu();
+  };
+
+  closeMenu() {
+    this.showMenu = false;
+    document.removeEventListener("click", this.documentClickListener);
+  }
+
+  handleMenuAction(action: string): void {
+    console.log(action);
+    this.closeMenu();
+    switch (action) {
+      case "logout":
+        this.auth.logout();
+        break;
+      case "settings":
+        break;
+    }
+    this.showMenu = false;
+    console.log(`Acción del menú: ${action}`);
+  }
+
+  toggleMenu(event: Event) {
+    console.log('Emtro a este metodo')
+    event.stopPropagation();
+    this.showMenu = !this.showMenu;
+    console.log(this.showMenu)
+    if (this.showMenu) {
+      setTimeout(() => {
+        document.addEventListener("click", this.documentClickListener);
+      });
+    }
   }
 
   ngAfterViewInit() {

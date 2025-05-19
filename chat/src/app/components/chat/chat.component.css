@@ -169,7 +169,7 @@
 .status-icon {
     font-size: 14px;
     margin-left: 4px;
-    color: #5b68f2;
+    /* color: #5b68f2; */
 }
 
 .typing {
@@ -575,25 +575,39 @@
 
 .message-options {
     position: absolute;
-    top: 50%;
-    right: -5px;
-    transform: translateY(-50%);
+    top: 28%;
+    right: -1px;
+    transform: translateY(-50%) translateX(10px);
     opacity: 0;
     transition: opacity 0.2s ease, transform 0.3s ease;
     z-index: 5;
+    pointer-events: none;
+    /* evita clics mientras está oculto */
+
 }
 
-.message-wrapper:hover .message-options {
+.message:hover .message-options {
     opacity: 1;
     transform: translateY(-50%) translateX(0);
+    pointer-events: auto;
 }
 
+.message-options-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    background-color: transparent !important;
+}
 
 .message-options-icon:hover {
-    background-color: #f0f0f0;
+    background-color: transparent !important;
 }
 
-/* Estilos para el menú de opciones */
 .message-options-menu {
     position: absolute;
     top: 30px;

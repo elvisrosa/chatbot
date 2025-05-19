@@ -1,7 +1,5 @@
-import { HttpResponse } from '@angular/common/http';
-import { AfterViewInit, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
-import { Router } from '@angular/router';
-import { concat, Subscription } from 'rxjs';
+import { Component, Input, OnDestroy, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { Contact, MenuOption, Message } from 'src/app/models/Models';
 import { AuthService } from 'src/app/services/auth.service';
 import { UserService } from 'src/app/services/user.service';
@@ -10,7 +8,8 @@ import { WsService } from 'src/app/services/ws.service';
 @Component({
   selector: "app-sidebar",
   templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css']
+  styleUrls: ['./sidebar.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 
 export class SidebarComponent implements OnInit, OnDestroy {
@@ -26,6 +25,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
   public status: string = "";
   public typingTimeout: any;
   public typingSet = new Set<string>();
+  private contactsMap: Map<string, Contact> = new Map();
+
 
   options: MenuOption[] = [
     {
@@ -59,73 +60,124 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   ];
 
-  constructor(private userService: UserService, private auth: AuthService,
-    private ws: WsService) {
+  constructor(
+    private userService: UserService,
+    private auth: AuthService,
+    private ws: WsService,
+    private cdr: ChangeDetectorRef
+  ) {
     this.subscriptions = new Subscription();
   }
 
   ngOnInit(): void {
     this.subscriptions?.add(this.auth.activeContact$.subscribe(contact => {
       this.activeContact = contact;
-    }))
-    this.getContact();
+      this.cdr.detectChanges();
+    }));
+    this.loadContacts();
     this.listeningChangeContacts();
     this.listeningNewMessage();
     this.listeningTyping();
   }
 
-  getContact() {
+  loadContacts() {
     this.subscriptions?.add(this.userService.getContacts().subscribe({
       next: (response) => {
         this.contacts = response.data;
+        this.contactsMap.clear();
+        this.contacts.forEach(contact => this.contactsMap.set(contact.id!, contact));
+        this.cdr.detectChanges();
       },
       error: (error: any) => { },
       complete: () => { }
-    }))
+    }));
   }
 
   listeningChangeContacts(): void {
     this.subscriptions?.add(this.ws.newContact$.subscribe({
       next: (response) => {
         if (response) {
-          this.getContact();
+          this.loadContacts();
         }
         console.log("Data received from server", response);
       },
       error: (error: any) => { },
       complete: () => { }
-    }))
+    }));
   }
 
   listeningNewMessage(): void {
     this.subscriptions?.add(
       this.ws.message$.subscribe((message: Message) => {
-        console.log('Mensaje recibido', message)
         if (!message) return;
-        // if (this.activeContact?.id !== message.from) {
-          this.contacts = this.contacts.map(contact => {
-            if (contact.lastMessage) {
-              contact.lastMessage.message = message.content.body;
-              contact.lastMessage.status = message.status;
-              contact.lastMessage.date = message.timestamp;
+        console.log('Mensaje recibido', message);
+        console.log('Lista de contacto', this.contactsMap);
+
+        const senderId = message.from;
+        const receiverId = message.to;
+        const currentUserId = this.auth.userAutenticated?.id;
+
+        // Función para actualizar la información del último mensaje de un contacto
+        const updateContactLastMessage = (contactId: string | undefined) => {
+          if (contactId) {
+            const contact = this.contactsMap.get(contactId);
+            if (contact) {
+              contact.lastMessage = {
+                message: message.content?.body,
+                status: message.status,
+                date: message.timestamp,
+              };
+              if (contactId === receiverId && contactId === currentUserId) {
+                // Si el receptor es el usuario actual, no incrementar unreadMessages aquí
+              } else if (contactId === senderId && contactId !== currentUserId) {
+                contact.unreadMessages = (contact.unreadMessages || 0) + 1;
+              }
+
+              // Actualizar la referencia en el array para la detección de cambios
+              this.contacts = this.contacts.map(c =>
+                c.id === contact.id ? { ...contact } : c
+              );
             }
-            if (contact.id === message.from) {
-              contact.unreadMessages++;
-            }
-            return contact;
-          })
-        // }
-      }))
+          }
+        };
+
+        // Actualizar el contacto del remitente
+        updateContactLastMessage(senderId);
+
+        // Actualizar el contacto del receptor si es diferente del remitente
+        if (receiverId && receiverId !== senderId) {
+          updateContactLastMessage(receiverId);
+        }
+
+        this.cdr.detectChanges();
+      })
+    );
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   listeningUpdateContact(): void {
     this.subscriptions?.add(this.ws.updateContact$.subscribe({
       next: (resp) => {
         if (resp) {
-          this.getContact();
+          this.loadContacts();
         }
       }
-    }))
+    }));
   }
 
   listeningTyping(): void {
@@ -137,22 +189,27 @@ export class SidebarComponent implements OnInit, OnDestroy {
           this.typingSet.add(contactId);
           this.typingTimeout = setTimeout(() => {
             this.typingSet.delete(contactId);
+            this.cdr.detectChanges(); // Forzar la detección de cambios al finalizar el typing
           }, 3000);
+          this.cdr.detectChanges(); // Forzar la detección de cambios al iniciar el typing
         }
       }
-    }))
+    }));
   }
 
   getActiveContac(): void {
-    this.subscriptions?.add(this.auth.activeContact$.subscribe(contact => this.activeContact = contact));
+    this.subscriptions?.add(this.auth.activeContact$.subscribe(contact => {
+      this.activeContact = contact;
+      this.cdr.detectChanges();
+    }));
   }
 
   get filteredContacts() {
     if (this.searchTerm) {
-      const term = this.searchTerm.toLowerCase()
+      const term = this.searchTerm.toLowerCase();
       return this.contacts.filter(
         (contact) => contact.name.toLowerCase().includes(term) || contact.username.toLowerCase().includes(term),
-      )
+      );
     }
     return this.contacts;
   }
@@ -166,51 +223,51 @@ export class SidebarComponent implements OnInit, OnDestroy {
   getStatusIcon(status: string): string {
     switch (status) {
       case "sent":
-        return "check"
+        return "check";
       case "delivered":
-        return "done_all"
+        return "done_all";
       case "read":
-        return "done_all"
+        return "done_all";
       default:
-        return "schedule"
+        return "schedule";
     }
   }
 
   toggleMenu(event: Event) {
-    event.stopPropagation()
+    event.stopPropagation();
     this.showMenu = !this.showMenu;
     if (this.showMenu) {
       setTimeout(() => {
-        document.addEventListener("click", this.documentClickListener)
-      })
+        document.addEventListener("click", this.documentClickListener);
+      });
     }
   }
 
   closeMenu() {
-    this.showMenu = false
-    document.removeEventListener("click", this.documentClickListener)
+    this.showMenu = false;
+    document.removeEventListener("click", this.documentClickListener);
   }
 
   handleMenuAction(action: string): void {
-    console.log(action)
-    this.closeMenu()
+    console.log(action);
+    this.closeMenu();
     switch (action) {
       case "logout":
-        this.auth.logout()
+        this.auth.logout();
         break;
       case "settings":
         break;
     }
     this.showMenu = false;
-    console.log(`Acción del menú: ${action}`)
+    console.log(`Acción del menú: ${action}`);
   }
 
   documentClickListener = () => {
-    this.closeMenu()
-  }
+    this.closeMenu();
+  };
 
   ngOnDestroy(): void {
     this.subscriptions?.unsubscribe();
-    document.removeEventListener("click", this.documentClickListener)
+    document.removeEventListener("click", this.documentClickListener);
   }
 }

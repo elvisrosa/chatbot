@@ -52,7 +52,7 @@
                 </div>
                 <div class="contact-message-status">
                     <p *ngIf="contact.status !== 'pendig_acceptance'">
-                        <i class="material-icons status-icon">{{ getStatusIcon(contact.lastMessage?.status || '') }}</i>
+                        <i class="material-icons status-icon" [ngStyle]="{color: contact.lastMessage?.status === 'sent' ? 'gray' : '#5b68f2'}">{{ getStatusIcon(contact.lastMessage?.status || '') }}</i>
                         {{ contact.lastMessage?.message || contact.name }}
                     </p>
                     <p *ngIf="contact.status === 'pendig_acceptance'" class="pending-text">Solicitud de contacto</p>

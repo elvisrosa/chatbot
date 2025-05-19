@@ -30,7 +30,7 @@ export class UtilsService {
 
   getStatusIcon(status: string): string {
     switch (status) {
-      case "send":
+      case "sent":
         return "check"
       case "delivered":
         return "done_all"

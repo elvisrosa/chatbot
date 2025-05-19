@@ -72,7 +72,7 @@ public class ChatController {
 
         log.info("Es un contacto ? {}", isContact);
 
-        String status = isContact ? "send" : "pending_acceptance";
+        String status = isContact ? "sent" : "pending_acceptance";
 
         if (!isContact) {
             long pendingMessagesCount = messageService.countBySenderIdAndReceiverIdAndStatus(

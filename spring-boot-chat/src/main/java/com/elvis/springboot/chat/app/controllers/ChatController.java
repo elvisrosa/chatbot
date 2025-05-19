@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.Sort;
@@ -157,14 +158,16 @@ public class ChatController {
     }
 
     @MessageMapping("/me/mark-as-read")
-    public void markMessagesAsRead(@RequestBody List<String> messageIds, @RequestParam String contactId,
+    public void markMessagesAsRead(@RequestBody List<String> messageIds,
             Principal principal) {
 
+        log.info("Entro a marcar mensajes como leidos {}", messageIds);
         if (principal == null || principal.getName() == null) {
             return;
         }
         final String username = principal.getName();
-        User currentUser = userRepository.findByUsername(username).orElseThrow(()-> new UsernameNotFoundException("User not found"));
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         List<ObjectId> objectMessageIds = messageIds.stream()
                 .map(id -> {
@@ -200,12 +203,11 @@ public class ChatController {
             return;
         }
 
-        List<ObjectId> messagesIdRead = updatedMessages.stream()
-                .map(Messages::getId)
-                .toList();
+        List<String> messagesIdRead = updatedMessages.stream()
+                .map((rep) -> rep.getId().toHexString()).toList();
 
         String receiverUsername = updatedMessages.stream()
-                .map(Messages::getReceiverId)
+                .map(Messages::getSenderId)
                 .findFirst()
                 .flatMap(userRepository::findById)
                 .map(User::getUsername)
@@ -219,13 +221,15 @@ public class ChatController {
                 username,
                 "/queue/message-read",
                 messagesIdRead);
-
+        log.info("Se enviar notificación de mensaje leido a {} y a {}",  username, receiverUsername);
         if (receiverUsername != null && !receiverUsername.equals(username)) {
             messagingTemplate.convertAndSendToUser(
                     receiverUsername,
                     "/queue/message-read",
                     messagesIdRead);
         }
+
+
 
     }
 

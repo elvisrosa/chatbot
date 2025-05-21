@@ -14,9 +14,12 @@
             </div>
         </div>
         <div class="chat-actions">
+            <i class="material-icons">search</i>
             <i class="material-icons">videocam</i>
             <i class="material-icons">call</i>
-            <i class="material-icons">more_vert</i>
+            <!--<i class="material-icons" (click)="toggleMenuHeader($event)">more_vert</i>
+            <app-message-options [options]="optionsHeader" [showMenu]="showMenuHeader" (optionClicked)="handleMenuAction($event)"
+                (backdropClicked)="closeMenuHeader()"></app-message-options>-->
         </div>
     </div>
 
@@ -35,22 +38,33 @@
                 [class.outgoing]="message.to === activeContact?.id" #messageElement [attr.data-message-id]="message.id">
                 <div class="messages-date invisible-date-header" #dateHeader>{{ message.timestamp | dateformat }}</div>
                 <div class="message">
-                    <div class="message-options" (click)="toggleMessageOptions(message)">
+                    <!--<div class="message-options" (click)="toggleMessageOptions(message)">
                         <i class="material-icons message-options-icon" (click)="toggleMenu($event)">expand_more</i>
                         <app-message-options [options]="options" [showMenu]="showMenu"
                             (optionClicked)="handleMenuAction($event)"
                             (backdropClicked)="closeMenu()"></app-message-options>
-                    </div>
+                    </div>-->
                     <div class="message-content">
                         {{ message.content?.body }}
                     </div>
 
                     <div class="message-meta">
-                        <span class="message-time">{{ message.timestamp | date: 'hh:mm a' }}</span>
+                        <span class="message-time">{{ message.timestamp | date: 'shortTime' }}</span>
                         <i class="material-icons status-icon"
                             [ngStyle]="{color: message.status === 'sent' ? 'gray' : '#5b68f2'}">
                             {{ util.getStatusIcon(message.status || '') }}
                         </i>
+                    </div>
+
+                    <div class="message-options-container message-options-icon">
+                        <app-message-options [options]="options" [triggerIcon]="'expand_more'" [width]="200"
+                            [bgColor]="isDarkMode ? '#2a2a2a' : '#ffffff'"
+                            [textColor]="isDarkMode ? '#f5f5f5' : '#333333'"
+                            [iconColor]="isDarkMode ? '#b0b3b8' : '#555555'"
+                            [triggerBgColor]="isDarkMode ? 'rgba(50, 50, 50, 0.9)' : 'rgba(255, 255, 255, 0.9)'"
+                            [triggerColor]="isDarkMode ? '#b0b3b8' : '#555555'"
+                            [boxShadow]="isDarkMode ? '0 2px 10px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(0, 0, 0, 0.2)'"
+                            (optionSelected)="handleMessageOption($event, message)" #optionsModal></app-message-options>
                     </div>
                 </div>
             </div>

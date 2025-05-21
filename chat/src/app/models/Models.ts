@@ -39,6 +39,9 @@ export class MenuOption {
     label?: string = '';
     divider?: boolean = false;
     action?: string = '';
+    color?: string = '';
+    icon?: string = '';
+    danger?: string = '';
 }
 
 export class UserLogin {

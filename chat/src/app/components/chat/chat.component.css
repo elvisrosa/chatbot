@@ -573,6 +573,10 @@
 
 
 
+
+
+
+
 .message-options {
     position: absolute;
     top: 28%;
@@ -581,15 +585,15 @@
     opacity: 0;
     transition: opacity 0.2s ease, transform 0.3s ease;
     z-index: 5;
-    pointer-events: none;
+    /* pointer-events: none; */
     /* evita clics mientras está oculto */
 
 }
 
 .message:hover .message-options {
     opacity: 1;
-    transform: translateY(-50%) translateX(0);
-    pointer-events: auto;
+    /* transform: translateY(-50%) translateX(0);
+    pointer-events: auto; */
 }
 
 .message-options-icon {
@@ -598,36 +602,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0;
+    border-radius: 50%;
     cursor: pointer;
     transition: background-color 0.2s;
     background-color: transparent !important;
+    opacity: 0;
+}
+
+.message:not(.menu-open):hover .message-options-icon {
+    opacity: 1;
 }
 
 .message-options-icon:hover {
     background-color: transparent !important;
 }
-
-.message-options-menu {
-    position: absolute;
-    top: 30px;
-    right: 0;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    width: 180px;
-    display: none;
-    z-index: 10;
-    overflow: hidden;
-    transform-origin: top right;
-    animation: scaleIn 0.2s ease;
-}
-
-
-.message-options-menu.show {
-    display: block;
-}
-
 
 @keyframes scaleIn {
     from {
@@ -679,10 +667,10 @@
     background-color: #3a3a3a;
 }
 
-:host-context(.dark-mode) .message-options-menu {
+/* :host-context(.dark-mode) .message-options-menu {
     background-color: #2a2a2a;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); */
+/* } */
 
 :host-context(.dark-mode) .menu-option:hover {
     background-color: #3a3a3a;
@@ -826,4 +814,15 @@
     30% {
         transform: translateY(-4px);
     }
+}
+
+/* Estilos para el contenedor de opciones */
+.message-options-container {
+    position: absolute;
+    top: 20%;
+    right: -1px;
+    /* right: -30px; */
+    /* transform: translateY(-50%) translateX(10px); */
+    /* transition: opacity 0.2s ease, transform 0.3s ease; */
+    z-index: 5;
 }

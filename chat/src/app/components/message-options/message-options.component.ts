@@ -1,74 +1,15 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { Action } from 'rxjs/internal/scheduler/Action';
+import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { MenuOption } from 'src/app/models/Models';
 
 @Component({
   selector: 'app-message-options',
   templateUrl: './message-options.component.html',
-  styles: [`
-  .dropdown-menu1 {
-    position: absolute;
-    right: 0;
-    z-index: 1000;
-    display: none;
-    min-width: 220px;
-    background-color: var(--color-primary) !important;
-
-  }
-  .dropdown-menu1.show {
-    display: block;
-  }
-
-  .dropdown-content {
-    position: relative;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px var(--color-primary);
-    overflow: hidden;
-    animation: fadeIn 0.2s ease;
-    z-index: 1001;
-    border: none;
-    color: var(--color-text);
-  }
-
-  :host-context(.dark-mode) .dropdown-content {
-    background-color: #2a2a2a;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  }
-
-  .dropdown-item {
-    padding: 12px 16px;
-    font-size: 14px;
-    color: var(--color-text);
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-
-  .dropdown-divider {
-    height: 1px;
-    background-color: #444;
-    margin: 4px 0;
-  }
-  .dropdown-item:hover {
-    background-color: var(--color-bg);
-  }
-
-  :host-context(.dark-mode) .dropdown-item {
-    color: #f5f5f5;
-  }
-
-  :host-context(.dark-mode) .dropdown-item:hover {
-    background-color: #3a3a3a;
-  }
-
-  :host-context(.dark-mode) .dropdown-divider {
-    background-color: #444;
-  }
-`]
+  styleUrls: ['./message-options.component.css'],
 })
 
 export class MessageOptionsComponent {
 
-  @Input() options: MenuOption[] = [];
+  @Input() options2: MenuOption[] = [];
   @Input() showMenu = false;
   @Output() optionClicked = new EventEmitter<string>();
   @Output() backdropClicked = new EventEmitter<void>();
@@ -80,6 +21,68 @@ export class MessageOptionsComponent {
 
   onBackdropClick(): void {
     this.backdropClicked.emit();
+  }
+
+  /**Nuevo */
+
+  @Input() options: MenuOption[] = []
+  @Input() triggerIcon = "expand_more"
+  @Input() width = 180
+  @Input() zIndex = 1000
+  @Input() bgColor = "#ffffff"
+  @Input() textColor = "#333333"
+  @Input() iconColor = "#555555"
+  @Input() triggerBgColor = "#ffffff"
+  @Input() triggerColor = "#555555"
+  @Input() boxShadow = "0 2px 10px rgba(0, 0, 0, 0.2)"
+
+  @Output() optionSelected = new EventEmitter<any>()
+  @Output() modalClosed = new EventEmitter<void>()
+  @Output() modalOpened = new EventEmitter<void>()
+
+  visible = false
+  showTrigger = false
+
+
+  toggleModal(event: Event) {
+    event.stopPropagation()
+    this.visible = !this.visible
+
+    if (this.visible) {
+      this.modalOpened.emit()
+    } else {
+      this.modalClosed.emit()
+    }
+  }
+
+  closeModal() {
+    if (this.visible) {
+      this.visible = false
+      this.modalClosed.emit()
+    }
+  }
+
+  selectOption(option: MenuOption) {
+    this.optionSelected.emit(option)
+    this.closeModal()
+  }
+
+  showTriggerButton() {
+    this.showTrigger = true
+  }
+
+  hideTriggerButton() {
+    if (!this.visible) {
+      this.showTrigger = false
+    }
+  }
+
+  @HostListener("document:click", ["$event"])
+  onDocumentClick(event: MouseEvent) {
+    // Cerrar el modal si se hace clic fuera de él
+    if (this.visible) {
+      this.closeModal()
+    }
   }
 
 }

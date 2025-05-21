@@ -38,11 +38,34 @@ export class ChatComponent implements OnInit, AfterViewInit {
   private userAutenticated: Contact | null = null;
   /** ;Menu options */
   showMenu: boolean = false;
+  showMenuHeader: boolean = false;
+
 
   @ViewChild('messagesContainer', { static: false }) messagesContainer!: ElementRef;
   @ViewChildren("messageElement") private messageElements!: QueryList<ElementRef>
   @ViewChildren('dateHeader') dateHeaders!: QueryList<ElementRef>;
   @ViewChild('messageInput') messageInput!: ElementRef<HTMLInputElement>;
+
+  optionsHeader: MenuOption[] = [
+    {
+      label: 'Info del chat',
+      divider: false,
+      action: "",
+      color: 'red',
+      icon: 'info',
+      danger: ''
+    },
+    {
+      label: 'Vaciar chat',
+      divider: false,
+      action: ""
+    },
+    {
+      label: 'Eliminar chat',
+      divider: false,
+      action: ""
+    }
+  ]
 
   options: MenuOption[] = [
     {
@@ -506,9 +529,18 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.closeMenu();
   };
 
+  documentClickListenerHeader = () => {
+    this.closeMenuHeader();
+  };
+
   closeMenu() {
     this.showMenu = false;
     document.removeEventListener("click", this.documentClickListener);
+  }
+
+  closeMenuHeader() {
+    this.showMenuHeader = false;
+    document.removeEventListener("click", this.closeMenuHeader);
   }
 
   handleMenuAction(action: string): void {
@@ -526,14 +558,82 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
   toggleMenu(event: Event) {
-    console.log('Emtro a este metodo')
     event.stopPropagation();
     this.showMenu = !this.showMenu;
-    console.log(this.showMenu)
     if (this.showMenu) {
       setTimeout(() => {
         document.addEventListener("click", this.documentClickListener);
       });
+    }
+  }
+
+  toggleMenuHeader(event: Event) {
+    event.stopPropagation();
+    this.showMenuHeader = !this.showMenuHeader;
+    console.log(this.showMenuHeader)
+    if (this.showMenuHeader) {
+      setTimeout(() => {
+        document.addEventListener("click", this.documentClickListener);
+      });
+    }
+  }
+
+
+  handleMessageOption(option: MenuOption, message: Message) {
+    console.log(`Acción: ${option.id} en mensaje: ${message.content}`)
+
+    // Implementar acciones específicas
+    switch (option.id) {
+      case "reply":
+        // Lógica para responder
+        this.newMessage = `Respondiendo a: "${message.content.substring(0, 20)}${message.content.length > 20 ? "..." : ""
+          }" \n`
+        setTimeout(() => {
+          const inputElement = document.querySelector(".message-input input") as HTMLInputElement
+          if (inputElement) {
+            inputElement.focus()
+          }
+        }, 100)
+        break
+
+      case "copy":
+        // Copiar al portapapeles
+        navigator.clipboard
+          .writeText(message.content)
+          .then(() => console.log("Texto copiado al portapapeles"))
+          .catch((err) => console.error("Error al copiar texto: ", err))
+        break
+
+      case "delete":
+        // Aquí se implementaría la lógica para eliminar el mensaje
+        console.log("Mensaje eliminado (simulación)")
+        break
+
+      case "edit":
+        // Lógica para editar mensaje
+        this.newMessage = message.content
+        setTimeout(() => {
+          const inputElement = document.querySelector(".message-input input") as HTMLInputElement
+          if (inputElement) {
+            inputElement.focus()
+          }
+        }, 100)
+        break
+
+      case "star":
+        // Lógica para destacar mensaje
+        console.log("Mensaje destacado (simulación)")
+        break
+
+      case "forward":
+        // Lógica para reenviar mensaje
+        console.log("Preparando reenvío (simulación)")
+        break
+
+      case "report":
+        // Lógica para reportar mensaje
+        console.log("Mensaje reportado (simulación)")
+        break
     }
   }
 

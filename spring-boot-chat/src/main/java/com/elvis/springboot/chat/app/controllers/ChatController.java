@@ -228,9 +228,5 @@ public class ChatController {
                     "/queue/message-read",
                     messagesIdRead);
         }
-
-
-
     }
-
 }

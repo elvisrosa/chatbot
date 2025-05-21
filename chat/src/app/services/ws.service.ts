@@ -121,7 +121,7 @@ export class WsService {
 
 
   public sendMessage(message: Message): void {
-    if (this.connected) {
+    if (this.isActiveStomp()) {
       this.stompClient.publish({
         destination: '/app/chat.send',
         body: JSON.stringify(message),
@@ -143,44 +143,50 @@ export class WsService {
   }
 
   private setupTypingNotifier(): void {
-    this.typingSubject
-      .pipe(throttleTime(800))
-      .subscribe(() => {
-        const typingPayload = {
-          to: this.activeContact?.username,
-          type: 'typing',
-          content: '',
-          timestamp: null,
-          from: '',
-        };
+    if (this.isActiveStomp()) {
+      this.typingSubject
+        .pipe(throttleTime(800))
+        .subscribe(() => {
+          const typingPayload = {
+            to: this.activeContact?.username,
+            type: 'typing',
+            content: '',
+            timestamp: null,
+            from: '',
+          };
 
-        this.stompClient.publish({
-          destination: '/app/chat.typing',
-          body: JSON.stringify(typingPayload),
+          this.stompClient.publish({
+            destination: '/app/chat.typing',
+            body: JSON.stringify(typingPayload),
+          });
         });
-      });
+    }
   }
 
   sendTypingNotification(activeContact: Contact, type: string) {
-    const typingMessage = {
-      to: activeContact.username,
-      type: type,
-      content: '',
-      timestamp: null,
-      from: null
-    };
+    if (this.isActiveStomp()) {
+      const typingMessage = {
+        to: activeContact.username,
+        type: type,
+        content: '',
+        timestamp: null,
+        from: null
+      };
 
-    this.stompClient.publish({
-      destination: '/app/chat.typing',
-      body: JSON.stringify(typingMessage)
-    });
+      this.stompClient.publish({
+        destination: '/app/chat.typing',
+        body: JSON.stringify(typingMessage)
+      });
+    }
   }
 
   markAsRead(idsMessage: string[]) {
-    this.stompClient.publish({
-      destination: '/app/me/mark-as-read',
-      body: JSON.stringify(idsMessage)
-    });
+    if (this.isActiveStomp()) {
+      this.stompClient.publish({
+        destination: '/app/me/mark-as-read',
+        body: JSON.stringify(idsMessage)
+      });
+    }
   }
 
   public resetValueTyping() {

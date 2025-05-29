@@ -1,0 +1,32 @@
+<!--<ng-container *ngFor="let group of messages">
+                                <div class="messages-date-header date-badge" #dateHeader>
+                                    {{ group.date | dateformat | uppercase }}
+                                </div>
+                                <div *ngFor="let message of group.messages; trackBy: trackByMessageId"
+                                    class="message-wrapper" [class.outgoing]="message.to === activeContact?.id"
+                                    #messageElement>
+                                    <div class="messages-date invisible-date-header" #dateHeader>{{ message.timestamp |
+                                        dateformat }}</div>
+                                    <div class="message pending-message">
+                                        <div class="message-content">{{ message.content.body }}</div>
+                                        <div class="message-meta">
+                                            <span class="message-time">{{ message.timestamp | date: 'hh:mm a'}}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ng-container>
+                            <div class="pending-banner">
+                                <i class="material-icons">person_add</i>
+                                <span>{{ activeContact?.name }} te ha enviado una solicitud de contacto</span>
+
+                                <div class="pending-actions-compact">
+                                    <button class="reject-btn-compact" (click)="changeStatus('reject')">
+                                        <i class="material-icons">close</i>
+                                        Rechazar
+                                    </button>
+                                    <button class="accept-btn-compact" (click)="changeStatus('contact')">
+                                        <i class="material-icons">check</i>
+                                        Aceptar
+                                    </button>
+                                </div>
+                            </div>-->

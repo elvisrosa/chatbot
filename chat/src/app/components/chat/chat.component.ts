@@ -1,10 +1,25 @@
-import { AfterViewInit, Component, ElementRef, Input, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
-import { Contact, MenuOption, Message, ModelMessage } from 'src/app/models/Models';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, Input, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
+import { Contact, MenuOption, Message, MessageRequest, ModelMessage } from 'src/app/models/Models';
 import { ChatService } from 'src/app/services/chat.service';
 import { WsService } from 'src/app/services/ws.service';
 import { BehaviorSubject, debounceTime, Subject, Subscription, takeUntil } from 'rxjs';
 import { UtilsService } from 'src/app/services/utils.service';
 import { AuthService } from 'src/app/services/auth.service';
+import { EmojiEvent } from '@ctrl/ngx-emoji-mart/ngx-emoji';
+import { animate, style, transition, trigger } from '@angular/animations';
+import { MenuItem, MenuSection, UserProfile } from '../dropdownmenu/dropdownmenu.component';
+
+animations: [
+  trigger('emojiModal', [
+    transition(':enter', [
+      style({ opacity: 0, transform: 'translateY(10px)' }),
+      animate('150ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+    ]),
+    transition(':leave', [
+      animate('100ms ease-in', style({ opacity: 0, transform: 'translateY(10px)' }))
+    ])
+  ])
+]
 
 @Component({
   selector: 'app-chat',
@@ -14,7 +29,7 @@ import { AuthService } from 'src/app/services/auth.service';
 export class ChatComponent implements OnInit, AfterViewInit {
 
   @Input() isDarkMode = false;
-  public message: Message = new Message();
+  public message: MessageRequest = { from: '', to: '', content: '', type: '' };
   public messages: ModelMessage[] = [];
   public activeContact: Contact | null = null;
   private subscriptions?: Subscription;
@@ -29,22 +44,113 @@ export class ChatComponent implements OnInit, AfterViewInit {
   public isScrolling: boolean = false
   private scrollTimeout: any = null
   private typingTimeout: any;
-  // private unreadMessageIds: string[] = [];
   private messagesBeingRead: Set<string> = new Set();
   private readObserver: IntersectionObserver | null = null;
   private readonly readDebounceTime = 500;
   private readSubject = new BehaviorSubject<string[]>([]);
   private unsubscribe$ = new Subject<void>();
   private userAutenticated: Contact | null = null;
-  /** ;Menu options */
-  showMenu: boolean = false;
-  showMenuHeader: boolean = false;
-
-
+  public showMenu: boolean = false;
+  public showMenuHeader: boolean = false;
+  public showEmojiPicker: boolean = false;
+  showMessageOptions = false;
+  @ViewChild('emojiTrigger') emojiTrigger!: ElementRef;
   @ViewChild('messagesContainer', { static: false }) messagesContainer!: ElementRef;
   @ViewChildren("messageElement") private messageElements!: QueryList<ElementRef>
   @ViewChildren('dateHeader') dateHeaders!: QueryList<ElementRef>;
   @ViewChild('messageInput') messageInput!: ElementRef<HTMLInputElement>;
+  openMenuMessageId: string | null = null;
+
+
+  isMenuOpen = false;
+  menuWidth = '280px';
+  menuMaxHeight = '400px';
+
+  menuSections: MenuSection[] = [
+    {
+      title: 'Documents',
+      items: [
+        {
+          id: 'new',
+          label: 'New',
+          icon: 'fas fa-plus',
+          shortcut: '⌘+N',
+          action: () => console.log('New document')
+        },
+        {
+          id: 'search',
+          label: 'Search',
+          icon: 'fas fa-search',
+          shortcut: '⌘+S',
+          action: () => console.log('Search documents')
+        }
+      ]
+    },
+    {
+      title: 'Profile',
+      items: [
+        {
+          id: 'settings',
+          label: 'Settings',
+          icon: 'fas fa-cog',
+          shortcut: '⌘+O',
+          action: () => console.log('Open settings')
+        },
+        {
+          id: 'messages',
+          label: 'Messages',
+          icon: 'fas fa-envelope',
+          action: () => console.log('Open messages')
+        },
+        {
+          id: 'logout',
+          label: 'Logout',
+          icon: 'fas fa-sign-out-alt',
+          shortcut: '⌘+Q',
+          action: () => console.log('Logout')
+        }
+      ]
+    }
+  ];
+
+  userProfile: UserProfile = {
+    name: 'Amy Elsner',
+    role: 'Admin',
+    avatar: '/assets/svgs/user.svg' // Replace with actual avatar path
+  };
+
+  toggleMenu(messageId: string, event?: Event) {
+    console.log('Mesanje id', messageId, 'Mensaje abierto anteriormente', this.openMenuMessageId);
+    console.log('Is open', this.openMessageMenuId == messageId);
+    if (event) {
+      event.stopPropagation();
+    }
+    if (this.openMenuMessageId == messageId) {
+      this.closeMenu();
+    } else {
+      this.openMenuMessageId = messageId;
+      setTimeout(() => {
+        document.addEventListener("click", this.documentClickListener);
+      });
+    }
+  }
+
+  closeMenu() {
+    this.openMenuMessageId = null;
+  }
+
+  onMenuItemClick(item: any) {
+    console.log('Menu item clicked:', item);
+    this.closeMenu(); // Cierra el menú después de hacer click
+  }
+
+  // @HostListener('document:click', ['$event'])
+  // onDocumentClick(event: Event) {
+  //   console.log('Document clicked closed:', event);
+  //   this.closeMenu();
+  // }
+
+
 
   optionsHeader: MenuOption[] = [
     {
@@ -101,7 +207,54 @@ export class ChatComponent implements OnInit, AfterViewInit {
 
   ];
 
-  constructor(private services_ws: WsService, private ctS: ChatService, public util: UtilsService, private auth: AuthService) {
+
+  getPerLine(): number {
+    const viewportWidth = window.innerWidth;
+    if (viewportWidth < 320) return 6;
+    if (viewportWidth < 400) return 8;
+    if (viewportWidth < 500) return 10;
+    if (viewportWidth < 600) return 12;
+    if (viewportWidth < 768) return 14;
+    if (viewportWidth < 900) return 16;
+    return 18;
+  }
+
+  getPerLines(): number {
+    const containerWidth = this.emojiTrigger?.nativeElement?.clientWidth || window.innerWidth;
+    const emojiSizeWithMargin = 24; // px  
+    const calculatedPerLine = Math.floor(containerWidth / emojiSizeWithMargin);
+    return Math.min(18, Math.max(6, calculatedPerLine));
+  }
+
+  // @HostListener('document:click', ['$event'])
+  // @HostListener('document:keydown.escape', ['$event'])
+  // handleCloseEvents(event: MouseEvent | KeyboardEvent): void {
+  //   if (event instanceof KeyboardEvent && this.showEmojiPicker) {
+  //     this.showEmojiPicker = false;
+  //     this.focusInputMessage();
+  //     return;
+  //   }
+
+  //   if (event instanceof MouseEvent &&
+  //     this.showEmojiPicker &&
+  //     this.emojiTrigger?.nativeElement &&
+  //     !this.emojiTrigger.nativeElement.contains(event.target)) {
+  //     this.focusInputMessage();
+  //     this.showEmojiPicker = false;
+  //   }
+  // }
+
+  toggleEmojiPicker(event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    this.showEmojiPicker = !this.showEmojiPicker;
+    setTimeout(() => {
+      this.focusInputMessage();
+    }, 0);
+  }
+  constructor(private services_ws: WsService, private cdr: ChangeDetectorRef, private ctS: ChatService, public util: UtilsService, private auth: AuthService) {
     this.subscriptions = new Subscription();
     this.typingSubscription = new Subscription();
   }
@@ -241,13 +394,14 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
   onSendMessage(): void {
+    if (!this.activeContact?.id) return;
     this.message.to = this.activeContact?.id;
     if (!this.message.content) {
       return;
     }
     const newMessage = { ...this.message };
     this.services_ws.sendMessage(newMessage);
-    this.message = new Message();
+    this.message = { from: '', to: '', content: '', type: '' };
   }
 
   private changeStatus(status: string): void {
@@ -456,7 +610,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private focusInputMessage(): void {
+  public focusInputMessage(): void {
     if (this.messageInput) {
       this.messageInput.nativeElement.focus();
     }
@@ -533,11 +687,6 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.closeMenuHeader();
   };
 
-  closeMenu() {
-    this.showMenu = false;
-    document.removeEventListener("click", this.documentClickListener);
-  }
-
   closeMenuHeader() {
     this.showMenuHeader = false;
     document.removeEventListener("click", this.closeMenuHeader);
@@ -557,16 +706,6 @@ export class ChatComponent implements OnInit, AfterViewInit {
     console.log(`Acción del menú: ${action}`);
   }
 
-  toggleMenu(event: Event) {
-    event.stopPropagation();
-    this.showMenu = !this.showMenu;
-    if (this.showMenu) {
-      setTimeout(() => {
-        document.addEventListener("click", this.documentClickListener);
-      });
-    }
-  }
-
   toggleMenuHeader(event: Event) {
     event.stopPropagation();
     this.showMenuHeader = !this.showMenuHeader;
@@ -580,6 +719,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
 
 
   handleMessageOption(option: MenuOption, message: Message) {
+    alert('Entro')
     console.log(`Acción: ${option.id} en mensaje: ${message.content}`)
 
     // Implementar acciones específicas
@@ -637,6 +777,14 @@ export class ChatComponent implements OnInit, AfterViewInit {
     }
   }
 
+  addEmoji($event: EmojiEvent): void {
+    const { native } = $event.emoji;
+    if (native) {
+      this.message.content += native;
+      this.focusInputMessage();
+    }
+  }
+
   ngAfterViewInit() {
     this.setupIntersectionObserver();
     this.setupReadObserver();
@@ -658,4 +806,96 @@ export class ChatComponent implements OnInit, AfterViewInit {
     this.unsubscribe$.next();
     this.unsubscribe$.complete();
   }
+
+
+
+  /** Nuevo codigo */
+
+  getStatusIconTemplate(status: string): string {
+    switch (status) {
+      case 'sent':
+        return 'checkIcon';
+      case 'delivered':
+        return 'doubleCheckIcon';
+      case 'read':
+        return 'readIcon';
+      default:
+        return 'clockIcon';
+    }
+  }
+
+  openMessageMenuId: string | null = null;
+  menuPosition: { x: number; y: number } = { x: 0, y: 0 };
+
+  menuSectionsf: MenuSection[] = [
+    {
+      items: [
+        { id: 'reply', label: 'Responder', icon: 'reply' },
+        { id: 'copy', label: 'Copiar', icon: 'content_copy' },
+        { id: 'delete', label: 'Eliminar', icon: 'delete' },
+        { id: 'forward', label: 'Reenviar', icon: 'forward' },
+      ]
+    }
+  ];
+  menuWidthf: string = '10px';
+  menuMaxHeightf: string = '40px';
+  userProfilef?: UserProfile;
+  isHeaderMenuOpen: boolean = false;
+
+
+  trackByDate(index: number, group: any): string {
+    return group.date;
+  }
+
+
+  toggleMenuf(messageId: string, event: MouseEvent): void {
+    event.stopPropagation(); // ¡Importante! Evita que el clic se propague al documento inmediatamente
+    console.log(`toggleMenuf: Clicked ID: ${messageId}, Current open ID: ${this.openMessageMenuId}`);
+
+    if (this.openMessageMenuId === messageId) {
+      // Si ya está abierto para este mensaje, ciérralo
+      this.openMessageMenuId = null;
+      console.log('toggleMenuf: Closing menu.');
+    } else {
+      // Si no está abierto o es para otro mensaje, ábrelo
+      const targetElement = event.currentTarget as HTMLElement;
+      const rect = targetElement.getBoundingClientRect();
+
+      this.menuPosition = {
+        x: rect.left - 150, // Ajusta según necesites para posicionar el menú
+        y: rect.top + rect.height + 5 // Posiciona debajo del botón
+      };
+
+      
+      this.menuPosition = {
+        x: 10, // Ajusta según necesites para posicionar el menú
+        y: 30 // Posiciona debajo del botón
+      };
+
+
+      this.openMessageMenuId = messageId;
+      console.log(`toggleMenuf: Opening menu for ID: ${messageId}, Position:`, this.menuPosition);
+    }
+    this.cdr.detectChanges(); // Fuerza la detección de cambios para que Angular actualice el *ngIf
+  }
+
+
+  onMenuItemClickf(item: MenuItem): void {
+    console.log(`Opción seleccionada: ${item.label} para el mensaje ${this.openMessageMenuId}`);
+    // Aquí puedes añadir la lógica para cada acción del menú
+    // Por ejemplo:
+    // if (item.id === 'delete') { this.deleteMessage(this.openMessageMenuId); }
+    this.closeMenu(); // Cierra el menú después de seleccionar una opción
+  }
+
+  closeMenuf(): void {
+    if (this.openMessageMenuId !== null) {
+      console.log('closeMenuf: Cerrando menú de mensaje.');
+      this.openMessageMenuId = null;
+      this.cdr.detectChanges(); // Fuerza la detección de cambios
+    }
+  }
+
+
+
 }

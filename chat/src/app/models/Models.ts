@@ -8,6 +8,15 @@ export class Message {
     status?: "sent" | "delivered" | "read" | "pending" | "pendig_acceptance";
 }
 
+export interface MessageRequest {
+    from: string;
+    to: string;
+    content: string;
+    type: string;
+    timestamp?: Date;
+}
+
+
 export class Response {
     statusCode: number = 0;
     message: string = '';
@@ -52,4 +61,10 @@ export class UserLogin {
 export class ModelMessage {
     date?: Date;
     messages?: Message[];
+}
+
+export interface Content {
+    type: string;
+    body: string;
+    mediaUrl: string;
 }

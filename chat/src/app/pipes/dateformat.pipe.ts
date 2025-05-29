@@ -23,7 +23,9 @@ export class DateformatPipe implements PipeTransform {
       return this.getDayName(inputDate)
     }
     else if (this.isThisYear(inputDate)) {
-      return `${this.getDayName(inputDate)}, ${this.getMonthName(inputDate)} ${inputDate.getDate()}`
+      return `${this.getMonthName(inputDate)} ${inputDate.getDate()}`
+      // return `${this.getDayName(inputDate)}, ${this.getMonthName(inputDate)} ${inputDate.getDate()}`
+
     }
     else {
       return `${inputDate.getDate()} de ${this.getMonthName(inputDate)} de ${inputDate.getFullYear()}`

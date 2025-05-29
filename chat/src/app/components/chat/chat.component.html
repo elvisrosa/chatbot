@@ -17,9 +17,7 @@
             <i class="material-icons">search</i>
             <i class="material-icons">videocam</i>
             <i class="material-icons">call</i>
-            <!--<i class="material-icons" (click)="toggleMenuHeader($event)">more_vert</i>
-            <app-message-options [options]="optionsHeader" [showMenu]="showMenuHeader" (optionClicked)="handleMenuAction($event)"
-                (backdropClicked)="closeMenuHeader()"></app-message-options>-->
+            <i class="material-icons" (click)="toggleMenuHeader($event)">more_vert</i>
         </div>
     </div>
 
@@ -29,25 +27,14 @@
 
     <div *ngIf="!isPending" #messagesContainer class="messages-container" (scroll)="onScroll()">
         <ng-container *ngFor="let group of messages">
-
             <div class="messages-date-header date-badge" #dateHeader>
                 {{ group.date | dateformat | uppercase }}
             </div>
-
             <div *ngFor="let message of group.messages; trackBy: trackByMessageId" class="message-wrapper"
                 [class.outgoing]="message.to === activeContact?.id" #messageElement [attr.data-message-id]="message.id">
                 <div class="messages-date invisible-date-header" #dateHeader>{{ message.timestamp | dateformat }}</div>
                 <div class="message">
-                    <!--<div class="message-options" (click)="toggleMessageOptions(message)">
-                        <i class="material-icons message-options-icon" (click)="toggleMenu($event)">expand_more</i>
-                        <app-message-options [options]="options" [showMenu]="showMenu"
-                            (optionClicked)="handleMenuAction($event)"
-                            (backdropClicked)="closeMenu()"></app-message-options>
-                    </div>-->
-                    <div class="message-content">
-                        {{ message.content?.body }}
-                    </div>
-
+                    <div class="message-content">{{ message.content?.body }}</div>
                     <div class="message-meta">
                         <span class="message-time">{{ message.timestamp | date: 'shortTime' }}</span>
                         <i class="material-icons status-icon"
@@ -56,59 +43,41 @@
                         </i>
                     </div>
 
-                    <div class="message-options-container message-options-icon">
-                        <app-message-options [options]="options" [triggerIcon]="'expand_more'" [width]="200"
-                            [bgColor]="isDarkMode ? '#2a2a2a' : '#ffffff'"
-                            [textColor]="isDarkMode ? '#f5f5f5' : '#333333'"
-                            [iconColor]="isDarkMode ? '#b0b3b8' : '#555555'"
-                            [triggerBgColor]="isDarkMode ? 'rgba(50, 50, 50, 0.9)' : 'rgba(255, 255, 255, 0.9)'"
-                            [triggerColor]="isDarkMode ? '#b0b3b8' : '#555555'"
-                            [boxShadow]="isDarkMode ? '0 2px 10px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(0, 0, 0, 0.2)'"
-                            (optionSelected)="handleMessageOption($event, message)" #optionsModal></app-message-options>
+
+                    <div class="header-actions">
+                        <button class="menu-trigger" (click)="toggleMenuf(message.id ?? '', $event)"
+                            [attr.aria-expanded]="true" aria-label="Open menu">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="5" r="2" fill="currentColor" />
+                                <circle cx="12" cy="12" r="2" fill="currentColor" />
+                                <circle cx="12" cy="19" r="2" fill="currentColor" />
+                            </svg>
+                        </button>
+
+                        <app-dropdownmenu *ngIf="openMessageMenuId === message.id" [isOpen]="openMessageMenuId === message.id"
+                            [sections]="menuSections" [userProfile]="userProfilef" [width]="menuWidthf"
+                            [maxHeight]="menuMaxHeightf" [position]="menuPosition" (itemClick)="onMenuItemClickf($event)"
+                            (closeMenu)="closeMenuf()">
+                        </app-dropdownmenu>
                     </div>
                 </div>
             </div>
         </ng-container>
+        <div *ngIf="isTyping" class="message-wrapper">
+            <div class="message">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!--<div *ngIf=" false" class="messages-container pending-chat">
-                            <ng-container *ngFor="let group of messages">
-                                <div class="messages-date-header date-badge" #dateHeader>
-                                    {{ group.date | dateformat | uppercase }}
-                                </div>
-                                <div *ngFor="let message of group.messages; trackBy: trackByMessageId"
-                                    class="message-wrapper" [class.outgoing]="message.to === activeContact?.id"
-                                    #messageElement>
-                                    <div class="messages-date invisible-date-header" #dateHeader>{{ message.timestamp |
-                                        dateformat }}</div>
-                                    <div class="message pending-message">
-                                        <div class="message-content">{{ message.content.body }}</div>
-                                        <div class="message-meta">
-                                            <span class="message-time">{{ message.timestamp | date: 'hh:mm a'}}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </ng-container>
-                            <div class="pending-banner">
-                                <i class="material-icons">person_add</i>
-                                <span>{{ activeContact?.name }} te ha enviado una solicitud de contacto</span>
-
-                                <div class="pending-actions-compact">
-                                    <button class="reject-btn-compact" (click)="changeStatus('reject')">
-                                        <i class="material-icons">close</i>
-                                        Rechazar
-                                    </button>
-                                    <button class="accept-btn-compact" (click)="changeStatus('contact')">
-                                        <i class="material-icons">check</i>
-                                        Aceptar
-                                    </button>
-                                </div>
-                            </div>
-                    </div>-->
 
     <div class="chat-input-area" [class.disabled]="isPending">
         <div class="input-actions">
-            <i class="material-icons">emoji_emotions</i>
+            <i class="material-icons" (click)="toggleEmojiPicker($event)">emoji_emotions</i>
             <i class="material-icons">attach_file</i>
         </div>
         <div class="message-input" *ngIf="!isPending && !limitMessageSendPending">
@@ -123,9 +92,17 @@
             <i class="material-icons">lock</i>
             <span> {{ getMessageBlocked() }} </span>
         </div>
-    </div>
-</div>
 
-<ng-container *ngIf="!activeContact?.id">
-    Descarga la App disponible en la Play Store
-</ng-container>
+        <div #emojiTrigger class="emoji-modal-container" *ngIf="showEmojiPicker">
+            <div class="emoji-picker-wrapper emoji-modal-trans">
+                <emoji-mart (emojiClick)="addEmoji($event)"
+                    [i18n]="{ search: 'Buscar...', categories: { search: 'Resultado de búsqueda', recent: 'Recientes' } }"
+                    [darkMode]="isDarkMode" [perLine]="getPerLine()" [isNative]="true" [showPreview]="false" [skin]="1">
+                </emoji-mart>
+            </div>
+        </div>
+    </div>
+    <ng-container *ngIf="!activeContact?.id">
+        Descarga la App disponible en la Play Store
+    </ng-container>
+</div>

@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CommonModule } from '@angular/common';
@@ -11,7 +10,9 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { LoginComponent } from './components/login/login.component';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { DateformatPipe } from './pipes/dateformat.pipe';
-import { MessageOptionsComponent } from './components/message-options/message-options.component';
+import { ChatPendingComponent } from './components/chat-pending/chat-pending.component';
+import { PickerComponent } from '@ctrl/ngx-emoji-mart';
+import { DropdownmenuComponent } from './components/dropdownmenu/dropdownmenu.component';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { MessageOptionsComponent } from './components/message-options/message-op
     SidebarComponent,
     LoginComponent,
     DateformatPipe,
-    MessageOptionsComponent
+    ChatPendingComponent,
+    DropdownmenuComponent
   ],
   imports: [
     CommonModule,
@@ -28,6 +30,7 @@ import { MessageOptionsComponent } from './components/message-options/message-op
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
+    PickerComponent
 ],
   providers: [
     {

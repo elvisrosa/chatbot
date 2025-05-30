@@ -1,4 +1,6 @@
+import { CommonModule } from '@angular/common';
 import { Component, Input, OnDestroy, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { Contact, MenuOption, Message } from 'src/app/models/Models';
 import { AuthService } from 'src/app/services/auth.service';
@@ -9,7 +11,9 @@ import { WsService } from 'src/app/services/ws.service';
   selector: "app-sidebar",
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [CommonModule, FormsModule]
 })
 
 export class SidebarComponent implements OnInit, OnDestroy {

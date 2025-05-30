@@ -7,7 +7,10 @@ import { UtilsService } from 'src/app/services/utils.service';
 import { AuthService } from 'src/app/services/auth.service';
 import { EmojiEvent } from '@ctrl/ngx-emoji-mart/ngx-emoji';
 import { animate, style, transition, trigger } from '@angular/animations';
-import { MenuItem, MenuSection, UserProfile } from '../dropdownmenu/dropdownmenu.component';
+import { MenuItem2, MenuSection, UserProfile } from '../dropdownmenu/dropdownmenu.component';
+import { CommonModule } from '@angular/common';
+import { DateformatPipe } from 'src/app/pipes/dateformat.pipe';
+import { FormsModule } from '@angular/forms';
 
 animations: [
   trigger('emojiModal', [
@@ -25,6 +28,8 @@ animations: [
   selector: 'app-chat',
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.css'],
+  standalone: true,
+  imports: [CommonModule, DateformatPipe, FormsModule],
 })
 export class ChatComponent implements OnInit, AfterViewInit {
 
@@ -880,7 +885,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
   }
 
 
-  onMenuItemClickf(item: MenuItem): void {
+  onMenuItemClickf(item: MenuItem2): void {
     console.log(`Opción seleccionada: ${item.label} para el mensaje ${this.openMessageMenuId}`);
     // Aquí puedes añadir la lógica para cada acción del menú
     // Por ejemplo:

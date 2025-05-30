@@ -3,11 +3,40 @@ import { AuthService } from './services/auth.service';
 import { ThemeService } from './services/theme.service';
 import { Contact } from './models/Models';
 import { AuthState } from './enum/AuthState';
+import { LoginComponent } from './components/login/login.component';
+import { RouterOutlet } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { ChatComponent } from './components/chat/chat.component';
+import { FormsModule } from '@angular/forms';
 
 @Component({
+  standalone: true,
   selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  template: `
+  <div [ngSwitch]="authState">
+    <div *ngSwitchCase="'loading'" class="loading-screen">
+      <div class="spinner"></div>
+      <p>Cargando usuario...</p>
+    </div>
+
+    <app-login *ngSwitchCase="'unauthenticated'" [isDarkMode]="isDarkMode"></app-login>
+
+    <div *ngSwitchCase="'authenticated'" class="app-container" [class.dark-mode]="isDarkMode">
+      <aside class="sidebar-container">
+        <app-sidebar [autenticated]="authenticated"></app-sidebar>
+      </aside>
+      <main class="chat-container">
+        <app-chat [isDarkMode]="isDarkMode"></app-chat>
+      </main>
+      <div class="theme-toggle" (click)="toggleTheme()">
+        <i class="material-icons">{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</i>
+      </div>
+    </div>
+  </div>
+  `,
+  styleUrls: ['./app.component.css'],
+  imports: [LoginComponent, SidebarComponent, ChatComponent, CommonModule, RouterOutlet, FormsModule],
 })
 export class AppComponent implements OnInit {
 

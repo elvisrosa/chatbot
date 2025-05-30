@@ -1,5 +1,7 @@
+import { CommonModule } from '@angular/common';
 import { HttpStatusCode } from '@angular/common/http';
 import { Component, Input, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { UserLogin } from 'src/app/models/Models';
 import { AuthService } from 'src/app/services/auth.service';
 import { ThemeService } from 'src/app/services/theme.service';
@@ -7,7 +9,9 @@ import { ThemeService } from 'src/app/services/theme.service';
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  styleUrls: ['./login.component.css'],
+  standalone: true,
+  imports: [CommonModule, FormsModule]
 })
 export class LoginComponent implements OnInit {
 

@@ -42,25 +42,6 @@
                             {{ util.getStatusIcon(message.status || '') }}
                         </i>
                     </div>
-
-
-                    <div class="header-actions">
-                        <button class="menu-trigger" (click)="toggleMenuf(message.id ?? '', $event)"
-                            [attr.aria-expanded]="true" aria-label="Open menu">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="5" r="2" fill="currentColor" />
-                                <circle cx="12" cy="12" r="2" fill="currentColor" />
-                                <circle cx="12" cy="19" r="2" fill="currentColor" />
-                            </svg>
-                        </button>
-
-                        <app-dropdownmenu *ngIf="openMessageMenuId === message.id" [isOpen]="openMessageMenuId === message.id"
-                            [sections]="menuSections" [userProfile]="userProfilef" [width]="menuWidthf"
-                            [maxHeight]="menuMaxHeightf" [position]="menuPosition" (itemClick)="onMenuItemClickf($event)"
-                            (closeMenu)="closeMenuf()">
-                        </app-dropdownmenu>
-                    </div>
                 </div>
             </div>
         </ng-container>
@@ -93,14 +74,14 @@
             <span> {{ getMessageBlocked() }} </span>
         </div>
 
-        <div #emojiTrigger class="emoji-modal-container" *ngIf="showEmojiPicker">
+        <!--<div #emojiTrigger class="emoji-modal-container" *ngIf="showEmojiPicker">
             <div class="emoji-picker-wrapper emoji-modal-trans">
                 <emoji-mart (emojiClick)="addEmoji($event)"
                     [i18n]="{ search: 'Buscar...', categories: { search: 'Resultado de búsqueda', recent: 'Recientes' } }"
                     [darkMode]="isDarkMode" [perLine]="getPerLine()" [isNative]="true" [showPreview]="false" [skin]="1">
                 </emoji-mart>
             </div>
-        </div>
+        </div>-->
     </div>
     <ng-container *ngIf="!activeContact?.id">
         Descarga la App disponible en la Play Store
